@@ -1,0 +1,265 @@
+% !TeX root = thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+% Inspired and copied a lot of code from my.
+% http://web.stanford.edu/~chadj/latex2.html
+
+\ProvidesPackage{thesis}
+
+\usepackage[margin=25mm]{geometry}
+% \usepackage{newtxtext}
+% \usepackage{gfsartemisia-euler}
+\usepackage[math]{iwona}
+\usepackage{eulervm}
+% \usepackage{lmodern}
+\usepackage[T1]{fontenc}    % Better fonts
+\usepackage[utf8]{inputenc}	   % For extended UTF8 support change to utf8x
+\usepackage[english]{babel}	   % English hyphenation
+\usepackage{csquotes}		 % Multilingual quotes
+\usepackage[babel]{microtype}    % Awesome microtyping
+\usepackage{booktabs}    % Better tables
+\usepackage{multirow}    % Multirows in tables
+\usepackage{tablefootnote}    % Allows footnotes in tables
+\usepackage{mathtools}    % Includes AMSMath and provides more benefits
+\usepackage{bm}    % For bold math symbols
+\usepackage{bbm}    % For the indicator function \mathbbm{1}
+\usepackage[font=small]{caption}
+
+% Graphics
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\graphicspath{{img/}}    % Central repository for images
+\usepackage[svgnames,x11names,table]{xcolor}
+
+
+% Set paragraph formatting
+\usepackage{parskip}    % Do not indent paragraphs, and put some linespace between paragraphs
+%\usepackage{etoolbox}
+%\makeatletter
+%\let\ams@starttoc\@starttoc
+%\makeatother
+%\usepackage[parfill]{parskip}
+%\makeatletter
+%\let\@starttoc\ams@starttoc
+%\patchcmd{\@starttoc}{\makeatletter}{\makeatletter\parskip\z@}{}{}
+%\makeatother
+\linespread{1.1}    % Set more space between lines
+
+% Set ToC and bookmark depths
+\setcounter{tocdepth}{2}
+% \setcounter{secnumdepth}{3}
+
+% Set the section and figure numbering as Chapter#.<>
+\numberwithin{section}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+% Change the second nested bullet to a star.
+\renewcommand{\labelitemii}{$\star$}
+
+
+% Figures
+\usepackage{pgf,tikz}
+\usepackage{mathrsfs}
+\usetikzlibrary{arrows,shapes.geometric,shapes.misc}
+
+\tikzset{
+	header/.style={
+		% The shape:
+		rectangle,minimum size=6mm,
+		% The rest
+		draw=black!10,
+	}}
+	
+	\tikzset{
+		term/.style={
+			% The shape:
+			shape=rectangle,rounded corners=3mm,
+			% The size:
+			minimum size=6mm,
+			% The border:
+			very thick,
+			draw=red!50!black!50, % 50% red and 50% black,
+			% and that mixed with 50% white
+			% The filling:
+			top color=white, % a shading that is white at the top...
+			bottom color=red!50!black!20 % and something else at the bottom
+		}}
+		
+		\tikzset{
+			nterm/.style={
+				% The shape:
+				rectangle,minimum size=6mm,rounded corners=3mm,
+				% The rest
+				very thick,draw=black!30,
+				top color=black!05,bottom color=black!10,
+			}}
+
+
+% Math
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[chapter]
+\newtheorem{crr}{Corollary}[chapter]
+\newtheorem{prp}{Proposition}[chapter]
+\newtheorem{lmm}{Lemma}[chapter]
+
+\theoremstyle{definition}
+\newtheorem{dfn}{Definition}[chapter]
+
+\theoremstyle{remark}
+\newtheorem{rem}{Remark}[chapter]
+\newtheorem{eg}{Example}[chapter]
+
+% Number equations depending on the section
+\numberwithin{equation}{chapter}
+
+% Differential operators
+\usepackage{commath}
+
+% Probability operators
+\DeclareMathOperator{\E}{\mathbb{E}}
+\DeclareMathOperator{\Var}{\mathbb{V}\mathrm{ar}}
+\DeclareMathOperator{\Cov}{\mathbb{C}\mathrm{ov}}
+
+% Floor and ceil functions
+\newcommand\floor[1]{\left\lfloor#1\right\rfloor}
+\newcommand\ceil[1]{\left\lceil#1\right\rceil}
+
+% \opm
+\newcommand\buildcirclepm[5]{%
+	\begin{tikzpicture}[baseline=(X.base), inner sep=-#5, outer sep=-.65]
+	\node[draw,circle,line width=#4] (X)  {\footnotesize\raisebox{#2}{\scalebox{#3}{$#1\pm$}}};
+	\end{tikzpicture}%
+}
+\newcommand{\opm}{ 
+	\mathbin{
+		\mathchoice
+		{\buildcirclepm{\displaystyle     }{0.14ex}{0.95}{0.05ex}{.7}}
+		{\buildcirclepm{\textstyle        }{0.14ex}{0.95}{0.05ex}{.7}}
+		{\buildcirclepm{\scriptstyle      }{0.13ex}{0.955}{0.04ex}{.55}}
+		{\buildcirclepm{\scriptscriptstyle}{0.08ex}{0.95}{0.03ex}{.45}}
+	} 
+}
+
+% Align math cells
+\newcommand*\rightmathcell[1]{\omit\hfil$\displaystyle#1$}
+\newcommand*\centermathcell[1]{\omit\hfil$\displaystyle#1$\hfil\ignorespaces}
+
+
+% Code
+%\usepackage[ruled,vlined,noend,linesnumbered,algochapter,dotocloa]{algorithm2e}
+\usepackage[ruled,vlined,noend,linesnumbered,algochapter]{algorithm2e}
+\usepackage{minted}
+
+
+% Bibliography
+\usepackage[backend=biber,style=alphabetic,sorting=ydnt]{biblatex}
+\addbibresource{thesis.bib}
+
+
+% Metadata
+\usepackage{titling}    % Allows using \theauthor, \thetitle, \thedate in the text
+\usepackage{datetime2}    % Custom date-time formats -- default: ISO
+\author{Sudip Sinha}
+\title{The Singular Points method for pricing exotic path-dependent options}
+\date{\today}
+%\date{\DTMdate{2015-10-07}}
+
+
+
+% Format Contents
+% There is a problem with the AMS classes -- the ToC overlaps http://tex.stackexchange.com/questions/20527/table-of-contents-section-number-and-title-overlapping
+% If we use tocloft, we get a lot of errors, but at the end it gives the correct output.
+\usepackage{tocloft}
+
+
+% Format titles
+\usepackage{titlesec}
+
+\titleformat{\chapter}[frame]
+{\fontfamily{gentium}\bfseries\Huge\color{Brown4}}
+{Chapter \thechapter}{1em}{}
+
+\titleformat{\section}
+{\fontfamily{gentium}\bfseries\Large\color{Brown3}}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\fontfamily{gentium}\bfseries\large\color{Brown2}}
+{\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+{\fontfamily{gentium}\bfseries\large\color{Brown1}}
+{\thesubsection}{1em}{}
+
+\titleformat{\paragraph}[runin]
+{\fontfamily{gentium}\bfseries\itshape\color{Chocolate4}}
+{\theparagraph}{1em}{}
+
+\titleformat{\subparagraph}[runin]
+{\fontfamily{gentium}\itshape\color{Chocolate4}}
+{\theparagraph}{0pt}{}
+
+\titlespacing*{\chapter} {0pt}{50pt}{40pt}
+\titlespacing*{\section} {0pt}{3.5ex plus 1ex minus .2ex}{2.3ex plus .2ex}
+\titlespacing*{\subsection} {0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\subsubsection}{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\paragraph} {0pt}{3.25ex plus 1ex minus .2ex}{1em}
+\titlespacing*{\subparagraph} {\parindent}{3.25ex plus 1ex minus .2ex}{1em}
+
+
+% Format the headers and footers
+\setlength{\headheight}{14pt}   % To avoid the fancyhdr warning: \headheight is too small
+\usepackage{lastpage}		% To get the last page number
+\usepackage{fancyhdr}		% Headers and footers
+\pagestyle{fancy}			% All pages have headers and footers
+% Convert chapter, section names in headers to normal case
+\renewcommand{\chaptermark}[1]{ \markboth{#1}{} }
+\renewcommand{\sectionmark}[1]{ \markright{#1}{} }
+\fancyhf{}		 % Blank out the default header and footer
+\fancyhf[HL]{\color{Tan} \scshape \leftmark}
+\fancyhf[HR]{\color{Tan} \scshape \rightmark}
+\fancyhf[FC]{{\color{FireBrick} \large \thepage} {\color{Tan} of} \pageref{LastPage}}
+% Remove the decorative lines
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancypagestyle{plain}{
+	\fancyhf{}    % Remove everything
+	% Including the lines
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{0pt}
+}
+
+
+\usepackage[
+pdfusetitle,		% Use PDF title
+pdfauthor={Sudip Sinha},		% Sets the document information Author field
+pdfsubject={Masters Thesis},		% Sets the document information Subject field
+pdfkeywords={derivative, option, pricing, Cox Ross Rubenstein, CRR, Black Scholes, BS},		 % Sets the document information Keywords field
+pdfstartview=FitBH,		 % Fits the width of the page bounding box to the window - replace by FitH.
+pdfpagelayout=OneColumn,		% Displays the document in one column; continuous scrolling.
+bookmarks=true,
+unicode=true,
+colorlinks=true,
+% backref=section,		% Adds ‘backlink’ text to the end of each item in the bibliography, as a list of section numbers. Incompatible with biblatex.
+% linktocpage=true,			 % ToC, LoF, LoT place hyperlink on page number, rather than entry text
+breaklinks=true,				% so long urls are correctly broken across lines
+% pagebackref=false,		 % add page number in bibliography and link to position in document where cited, incompatible with biblatex
+linkcolor=red,
+urlcolor=IndianRed,
+citecolor=Sienna,
+hyperfootnotes=false
+]{hyperref}
+\usepackage[figure,table]{hypcap}		 % Correct a problem with hyperref
+\urlstyle{rm}		 %so it doesn't use a typewriter font for URLs
+
+
+
+% \let\LaTeXtitle\title
+% \renewcommand{\title}[1]{\LaTeXtitle{\color{myBlue}{\LARGE #1}}}
+% \renewcommand{\abstractname}{\color{myBlue}Abstract}
+% \renewcommand{\figurename}{\color{myBlue}Figure}
+% \renewcommand{\tablename}{\color{myBlue}Table}

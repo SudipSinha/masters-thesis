@@ -1,0 +1,20 @@
+% !TeX root = ../thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+In the thesis, our main focus was to develop the ideas behind the pricing of options, and to study two particular classes of path-dependent exotic options, namely Asian options and cliquet options. We saw that these options do not lend themselves to be priced under the Black-Scholes framework, and we have to resort to alternative ways of pricing them. They can be priced in the Cox-Ross-Rubinstein model, but the complexity is exponential with respect to the number of time steps, and is infeasible in practice. The singular points method is a new lattice based method which has the same theoretical complexity as the Cox-Ross-Rubinstein model. But it excels in allowing for approximations, and this reduces the complexity from exponential time to polynomial time of very low orders.
+
+Albeit similar in the basic structure, the theory of how the singular points method may be applied for Asian options and cliquet options are quite different, as are the corresponding algorithms. On the one hand, in the case of Asian options, we saw that the algorithm neither did generalise for Asian options with geometric mean, nor for local volatility models. Moreover, the pre-existing algorithms (some lattice-based) were quite competitive to this method.
+
+On the other hand, for cliquet options, the method was able to handle cases of variable rates of interest, volatility, and local caps and floors with ease. The algorithm is extremely fast in this case, and does in fact outdo most other competing algorithms in terms of simplicity, ease of implementation and low memory requirement. Furthermore, this seems to be one of the very few tree lattice-based methods available to price cliquet options.
+
+As a further research, it might be interesting to explore on the possibility of customising the method for other exotic option types. It would also be interesting to conduct a further study on the theoretical complexity of the algorithm, especially the dependence of the number, closeness and removability of singular point with respect to initial data ($ S_0, K, T, \sigma, r, F_{loc}, C_{loc}, F_{glob}, C_{glob} $) and the computational parameters ($ m, h $).
+
+In conclusion, the method is quite specific; its implementation depends very much on the type of option. Nevertheless, it is a significant leap in the domain of tree methods because of its inherent advantages over other methods.
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

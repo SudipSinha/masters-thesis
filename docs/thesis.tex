@@ -1,0 +1,100 @@
+% !TeX root = thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+\documentclass[12pt,a4paper,oneside]{amsbook}
+
+\usepackage{thesis}
+
+
+\begin{document}
+
+
+\frontmatter
+
+% Half-title
+
+% Title page
+\input{tex/title.tex}
+
+% A nice quote
+
+% Information (copyright notice, ISBN, etc.)
+
+%\chapter*{Dedication}
+%\label{cha:dedication}
+%\input{tex/dedication.tex}
+
+\tableofcontents
+
+
+
+% Preface chapter
+\chapter*{Preface}
+\label{cha:preface}
+\input{tex/preface.tex}
+
+
+\chapter*{Notations}
+\begin{description}
+	\item[$ {[n]} $] $ \{0, 1, 2, \dots, n\} $
+	\item[$ \mathbb{N} $] $ \{ 1, 2, 3, \dots \} $
+	\item[$ \mathbb{N}_0 $] $ \mathbb{N} \cup \{ 0 \} $
+	\item[$ \mu \mathcal{F} $] The class of all $ \mathcal{F} $-measurable functions.
+	\item[$ \floor{\cdot} $] The floor function. $ \floor{x} $ gives the largest integer smaller or equal to $ x $.
+	\item[$ \ceil{\cdot} $] The ceiling function. $ \ceil{x} $ gives the smallest integer larger or equal to $ x $.
+	\item[$ \sim $] Represents the discounted value when used on top of a quantity. For example, $ \tilde{S}_t = e^{-rt} S_t $
+\end{description}
+
+\subparagraph{Units of prices} Throughout the text, we have not specified any monetary unit for the prices of assets. This is because the theory and computations hold no matter what unit is chosen. The only care that needs to be taken is to have all quantities in the same unit; in case not, they should be converted to a uniform unit system.
+
+
+
+\mainmatter
+
+\chapter{Prologue}
+\label{cha:prologue}
+\input{tex/prologue.tex}
+
+\chapter{Market models}
+\label{cha:models}
+\input{tex/models.tex}
+
+\chapter{Asian options}
+\label{cha:asian}
+\input{tex/asian.tex}
+
+\chapter{Cliquet options}
+\label{cha:cliquet}
+\input{tex/cliquet.tex}
+
+\chapter{Epilogue}
+\label{cha:epilogue}
+\input{tex/epilogue.tex}
+
+
+
+%\appendix
+
+
+
+\backmatter
+
+\listoffigures
+
+\listoftables
+
+%\listofalgorithms
+
+\printbibliography
+
+
+\end{document}
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

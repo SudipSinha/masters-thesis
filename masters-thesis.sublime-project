@@ -1,0 +1,45 @@
+{
+	"build_systems":
+	[
+		{
+			"file_regex": "^[ ]*File \"(...*?)\", line ([0-9]*)",
+			"name": "Anaconda Python Builder",
+			"selector": "source.python",
+			"shell_cmd": "\"python\" -u \"$file\""
+		}
+	],
+	"folders":
+	[
+		{
+			"path": "docs",
+			"file_exclude_patterns":
+			[
+				"*.log",
+				"*.tuc",
+				"*.pgf",
+				"*~*"
+			],
+			"folder_exclude_patterns":
+			[
+				"*-export"
+			],
+		},
+		{
+			"path": "code",
+			"file_exclude_patterns":
+			[
+				"*.py[cod]",
+				"*$py.class"
+			],
+			"folder_exclude_patterns":
+			[
+				"__pycache__",
+				".ipynb_checkpoints"
+			],
+		},
+	],
+	"settings":
+	{
+		"tab_size": 4
+	}
+}

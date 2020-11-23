@@ -1,0 +1,51 @@
+Timing: ON
+
+Cliquet LOW
+===========
+m = 10
+10 loops, best of 3: 29.2 msec per loop
+----------------------------------------
+m = 20
+10 loops, best of 3: 202 msec per loop
+----------------------------------------
+m = 50
+10 loops, best of 3: 864 msec per loop
+----------------------------------------
+m = 100
+10 loops, best of 3: 2.33 sec per loop
+----------------------------------------
+m = 200
+10 loops, best of 3: 6.01 sec per loop
+----------------------------------------
+m = 500
+10 loops, best of 3: 24 sec per loop
+----------------------------------------
+m = 1000
+10 loops, best of 3: 54 sec per loop
+----------------------------------------
+
+Cliquet VAR
+===========
+m = 10
+100 loops, best of 3: 2.51 msec per loop
+----------------------------------------
+m = 20
+100 loops, best of 3: 13.8 msec per loop
+----------------------------------------
+m = 50
+10 loops, best of 3: 63.3 msec per loop
+----------------------------------------
+m = 100
+10 loops, best of 3: 161 msec per loop
+----------------------------------------
+m = 200
+10 loops, best of 3: 361 msec per loop
+----------------------------------------
+m = 500
+10 loops, best of 3: 1.11 sec per loop
+----------------------------------------
+m = 1000
+10 loops, best of 3: 4.31 sec per loop
+----------------------------------------
+
+Timing: OFF

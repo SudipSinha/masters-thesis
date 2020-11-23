@@ -1,0 +1,292 @@
+% !TeX root = ../thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+Mathematics and finance have been intricately linked since the inception of human civilisations. In the span of the last two millennia, many mathematicians -- from Thales of Greece to Fibonacci, Pascal, Fermat and Bernoulli -- have tried to apply their knowledge to the domain of finance\footnote{Significant portions in this introductory section have been taken verbatim from the paper \cite{Akyildirim2014}}. However, Louis Bachelier's thesis “Théorie de la Spéculation” (Theory of Speculation) in 1900 arguably marked the birth of modern mathematical finance. Bachelier is credited with being the first person to derive the mathematics of Brownian motion and to apply its trajectories for modelling stock price dynamics and calculating option prices.
+
+One of the most exciting innovations in the modern history of mathematical finance is rooted in the discovery of the Brownian motion by Scottish botanist Robert Brown. In 1827, he observed rapid oscillatory motion of microscopic particles in a fluid resulting from their collision with atoms or molecules in the fluid. However, Bachelier was the first to define Brownian motion mathematically, and used the one dimensional version $ t \mapsto B_t, t \ge 0 $ to model stock price dynamics. Norbert Wiener laid down the rigorous mathematical foundation of Browian motion, hence the parallel name of Wiener process is also used for Brownian motion. He proved the existence of Brownian motion, and constructed the Wiener measure which describes its probability distribution.
+
+In 1933, in the seminal book “Foundations of the Theory of Probability”, Kolmogorov laid the foundation of modern Probability theory from fundamental axioms. His work relied heavily on Lebesgue's Measure Theory, and united the previously disparate areas of probability -- discrete and continuous -- into a unified theory that could be applied to both. It is in this book that he introduced the ideas of conditional expectation and equivalent measures.
+
+Another breakthrough in Probability theory came in 1941, when in his attempts to model Markov processes, Kiyosi Itô (in his famous 1942 paper “On stochastic processes”) constructed stochastic differential equations of the form $ \dif X_t = \mu(X_t) \dif t + \sigma(X_t) \dif B_t $, where $ B_t $ is a standard Brownian motion. He introduced the theory of integration over a Brownian motion, and in 1951 gave a formula for constructing new stochastic differntial equations from existing ones (Itô's lemma), giving birth to Itô calculus. Itô's lemma is one of the most widely used mathematical formula by financial engineers today.
+
+At this crucial juncture, when the probability theory was ripe enough, in 1973, Fischer Black and Myron Scholes published the paper “The Pricing of Options and Corporate Liabilities”, and Robert Merton published the paper “On the pricing of corporate debt: the risk structure of interest rates”. These papers together introduced a new methodology for the valuation of financial instruments and in particular developed the Black–Scholes model for pricing European call and put options. At the same time, another breakthrough on the industry side was the foundation of the Chicago Board Options Exchange to become the first marketplace for trading listed options. Even beyond the imagination of the celebrated authors above, the market was so quick to adapt these models. By 1975, almost all traders were valuing and hedging option portfolios by using the Black–Scholes model built in their hand calculators.
+
+But there were problems with the Black and Scholes model. A primary disadvantage was that the esoteric theory was not understandable by most practitioners in the field of finance. Moreover, it could not be used to price all kinds of options. In 1979, Cox, Ross and Rubinstein introduced a discrete model, which is much more approachable, and yet has the flexibility to price almost all kinds of derivatives. Yet, the exponential nature of the complexity forbids scaling up the number of levels of the tree to any significant value, reducing its utility.
+
+In this chapter, we briefly discuss some fundamental ideas in finance. We shall follow this up with a discussion on the two models mentioned.
+
+
+\section{Financial instruments}
+\label{sec:intro-assets}
+
+A \emph{financial instrument} or a \emph{financial asset} is an intangible asset whose value is derived from a contractual claim, such as bank deposits, bonds, stocks and derivatives. Financial assets are usually more \emph{liquid} than other tangible assets, such as commodities or real estate, and may be traded on financial markets. Every financial asset is characterised by its return. When the return is deterministic, we call it a \emph{risk-free} or \emph{riskless} asset. When the return is contingent on the market and external conditions, it is called \emph{risky}. It must be kept in mind that no instrument is fundamentally risk-free, it has only negligible risk compared to its risky counterparts.
+
+
+
+\subsection{Return on an asset}
+\label{subsec:intro-assets-return}
+
+\subparagraph{Notation} We will use a zero in the superscript to denote the riskless asset. For example, $ S_t^0 $ denotes the price of the riskless asset at a time $ t $. On the other hand, the absence of a zero (or presence of another index) in the subscript means that we are referring to a risky asset.
+
+\paragraph{Return on a riskless asset -- Compounding}
+Compounding is the first idea that we must be familiar with. Essentially, a riskless asset will increase in monetary value in a deterministic manner if we keep it in the market. The increase depends on the compounding frequency and the duration of investment. The term compounding is used because the interest earned in each period also contributes to the principal in the successive periods.
+
+Let the compounding frequency is $ n $ times per year, the total time is $ t $, and the annual rate of interest is $ r $. Then
+\begin{equation}
+	\label{eq:intro-compounding-discrete}
+	S_t^0 = S_0^0 \left(1 + \frac{r}{n} \right)^{\floor{nt}},
+\end{equation}
+where $ S_0^0 $ is the starting value of the asset, and $ S_t^0 $ is the value of the asset at time $ t $, and $ \floor{\cdot} $ represents the floor function.
+
+If the compounding is continuous, we let $ n \to \infty $ to obtain
+\begin{equation}
+	\label{eq:intro-compounding-continous}
+	S_t^0 = S_0^0 e^{rt}.
+\end{equation}
+
+
+\paragraph{Return on a risky asset}
+At any point of time in the future, the value of a risky asset is not known with certainty, so it is a random variable taking values in $ [0, \infty) $. Since the values change with time, we denote the \emph{spot price} of a risky asset by the stochastic process\footnote{\url{https://en.wikipedia.org/wiki/Stochastic_process}} $ (S_t)_t $, where $ t \in [0, T] $ denotes the time, $ T $ being the maturity. Since the future value of the asset is adventitious, we use the following metrics to measure the return of the risky asset in the given time interval.
+
+\begin{dfn}[absolute and relative returns]
+	The absolute return on an asset for the time interval $ [0, t], \  t \in [0, T] $ is given by
+	\begin{equation*}
+		\tilde{R}_t = S_t - S_0 ,
+	\end{equation*}
+	while the relative return on the asset is given by
+	\begin{equation*}
+		R_t = \frac{S_t - S_0}{S_0} .
+	\end{equation*}	
+\end{dfn}
+
+It must be noted that relative return is usually a better indicator of the return on an asset as compared to its absolute equivalent. This may be illustrated better by the following example.
+\begin{eg}[relative vs absolute return]
+	Let A and B be two assets. Let their values at $ t = 0 $ be $ S_0^A = 5 $ and $ S_0^B = 10 $, respectively. At time $ t = 1 $ one observes that the prices have become $ S_1^A = 10 $ and $ S_1^B = 15 $.
+	
+	The absolute return on both assets are equal to $ 5 $ here. On the other hand, the relative returns are:
+	\begin{align*}
+		R_1^A  &=  \frac{S_1^A - S_0^A}{S_0^A} = \frac{5}{5} = 1  \\
+		R_1^B  &=  \frac{S_1^B - S_0^B}{S_0^B} = \frac{5}{10} = \frac{1}{2}
+	\end{align*}
+	
+	Thus, the asset A is more interesting to an investor, as it gives more return on investment. If an investor were to invest an amount of $ 10 $ at $ t = 0 $, it is more profitable for him to buy two units of asset A as compared to one unit of asset B.
+\end{eg}
+
+
+\subsection{Common asset types}
+
+\paragraph{Bonds}
+A \emph{bond} is an instrument of indebtedness of the \emph{issuer} to the \emph{holder}. It is a \emph{debt security}, under which the issuer owes the holders a debt and, depending on the terms of the bond, is obliged to pay them interest (the coupon) and/or to repay the principal at a later date, termed the maturity date. Bonds can also be thought of as a \emph{loan} given to the issuer by the holder. A bond primarily has two kinds of risks, \emph{credit default risk} and \emph{interest rate risk}. A bond issued by a reliable institution like the United States government is a good illustration of a risk-free asset. This is because the probability of such an organisation defaulting is close to zero, or in other words, the bond has \emph{negligible} \emph{credit default risk}. Such bonds are only subject to fluctuations of the current interest rate, called \emph{interest rate risk}. The interest rate risk may also be nullified if the bond is held till maturity. If we assume that the interest rate is deterministic (the fluctuations are not random), the value of the bond is computable at any given future date, making it riskless. Such an assumption is quite reasonable in short periods of time and for institutions with a low default risk rating.
+
+
+\paragraph{Stocks}
+A \emph{stock} of a corporation is an ownership certificate, and constitutes the equity stake of its owners. It represents the residual assets of the company that would be due to stockholders after discharge of all senior claims such as secured and unsecured debt. A \emph{share} of a stock is a unit of ownership of the organisation. Stocks are inherently risky, since the value of the organisation may change from time to time due to various internal and external factors. This is why the value of a stock in time is represented by a stochastic process $ (S_t)_t $.
+
+
+\paragraph{Derivatives}
+A \emph{derivative} is a contract between two parties that specify conditions (starting and termination dates, resulting values and definitions of the underlying variables, the parties' contractual obligations, and the notional amount) under which transactions are to be made between the parties. The most common underlying assets include commodities, stocks, bonds, interest rates and currencies, but they can also be other derivatives, which adds another layer of complexity to proper valuation. Essentially, the value of a derivative is a function of the value of the \emph{underlying} asset(s). Derivatives are traded in their own right, and a \emph{fair price} must be found for a derivative at each time of its existence. This problem is known as the \emph{pricing problem}. One of the primary motivations for creation of derivatives was to hedge one's position from fluctuations in the market. A \emph{hedge} is an investment strategy intended to offset potential losses or gains that may be incurred by a companion investment. Finding a hedging strategy is called the \emph{hedging problem}. These are the two problems that must be looked at when defining a market model. In this thesis, our main focus shall be the pricing problem of a particular class of derivatives, called \emph{exotic options}.
+
+
+\subsection{Classification of derivatives}
+\label{subsec:intro-derivative-classification}
+
+Derivatives may be classified on the basis of various factors. One important factor is whether the risk is symmetric (shared equally), or asymmetric (taken up by only one party). Another factor is the nature of the function (of the underlying) that the derivative depends on. This function may either be dependent only on the final value of the underlying (\emph{path-independent}), or on the path that it took to reach this final value (\emph{path-dependent}). The function may be discrete (\emph{digital} or \emph{binary}), or continuous In this section, we briefly look at some of the more important types of derivatives. \footnote{
+	A more interested reader should consult the following extensive Wikipedia articles.
+	\begin{itemize}
+		\item \url{https://en.wikipedia.org/wiki/Option_(finance)\#Types}
+		\item \url{https://en.wikipedia.org/wiki/Option_style}
+	\end{itemize}
+}
+
+
+\paragraph{Futures and forwards}
+
+\begin{dfn}[Futures and forwards]
+	Futures and forwards are contracts between two parties, the seller and the buyer, to exchange a certain asset at a predetermined future time at a agreed upon price. Futures are \emph{exchange-traded derivatives} (ETDs), whereas forwards are traded \emph{over-the-counter} (OTC).
+\end{dfn}
+
+Such derivatives obligate the contractual parties to the terms over the life of the contract. Futures are in some sense `safer' compared to forwards, since the involved parties must go through standard protocols of the exchange.
+The contract contains the following details.
+\begin{description}
+	\item[$ T $] The maturity, or the duration of the contract
+	\item[$ F_0 $] The delivery price, or the price prefixed (at the initial time) at which trades must take place at maturity
+	\item[$ r $] The rate of interest
+	\item[underlying] The asset(s) of trade at maturity
+	\item[$ S_0 $] The initial value of the underlying asset(s)
+\end{description}
+There are, of course, other possibilities, for instance a variable interest rate, dividends yielded by the underlying, but these may be viewed as generalisations of this simple case.
+
+Let us assume that the compounding is continuous. We may show that under the condition of a \emph{viable market}\footnote{see Section \ref{sec:intro-market} for definitions of the term}, the fair delivery price of a future with underlying prices $ ( S_t )_{t \in [0, T] } $ at any time $ t \in [0, T] $ is given by the following equation.
+\begin{equation}
+	\label{eq:intro-future-pr}
+	F_t = S_t e^{ r (T - t) }
+\end{equation}
+
+
+\paragraph{Options}
+
+\begin{dfn}[option]
+	An \emph{option} or a \emph{contingent claim} is a derivative which provides the buyer \emph{the right, but not the obligation} to enter the contract under the specified terms.
+\end{dfn}
+
+Thus, the owner of the option may choose whether to exercise his right or not. Thus, on the one hand, the owner of the option bears no risk, since all the choice is his. On the other hand, the seller of the option is \emph{obligated} to honour the terms of the contract -- whether it benefits him or not -- essentially making him bear all the risks. This asymmetry is primarily what sets options apart from the futures and forwards discussed earlier.
+The contract contains the following details.
+\begin{description}
+	\item[$ T $] The maturity, or the duration of the contract
+	\item[$ K $] The strike price, or the prefixed price at which trades may take place at maturity
+	\item[$ r $] The rate of interest
+	\item[underlying] The asset(s) which may be traded at maturity
+	\item[$ S_0 $] The initial value of the underlying asset at the initial time
+	\item[right] The exact right that the owner of the options has (see below)
+	\item[exercise time] European or American (see below)
+\end{description}
+
+Options may be categorised by the right of the owner and the exercise time.
+
+\subparagraph{According to the right of the owner}  Options may be of two main types.
+\begin{description}
+	\item[call] The owner has the right to buy. In this case, the price of the option at maturity is given by $ c_T = (S_T - K)_+ $, where $ (x)_+ \coloneqq \max \{ 0, x \} $.
+	\item[put] The owner has the right to sell. In this case, the price of the option at maturity is given by $ p_T = (K - S_T)_+ $.
+\end{description}
+Of course, other complicated ownership rights may be constructed, but we shall restrict ourselves to calls and puts.
+
+\subparagraph{According to the time at which the option may be exercised}  Again, option may be of two main types.
+\begin{description}
+	\item[European] The owner may exercise the option only at maturity
+	\item[American] The owner may exercise the option at any time up to the maturity
+\end{description}
+Again, more complicated options exist, which allow exercising rights only at certain time points, but we exclude them from out discussion.
+
+Since American options allow for more flexibility for the owner, and thus more risk for the seller, they are more expensive as compared to their European counterparts. Let $ c_t, p_t $ denote the prices of an European call and put, and $ C_t, P_t $ denote the prices of an American call and put, respectively. Then, we must have $ C_t \ge c_t $ and $ P_t \ge p_t $.
+
+
+\subparagraph{Call-put parity}  Call and put prices are connected to each other. We need the following proposition to explore the relationship.
+
+\begin{prp}[Equality of portfolios]
+	\label{thm:intro-portfolio-eq}
+	In a \emph{viable} and \emph{frictionless market}\footnote{see Section \ref{sec:intro-market} for definitions of the terms}, if the values of two portfolios coincide at a time $ T $, they have to coincide at $ 0 $ ( or any other intermediate time $ t $).
+\end{prp}
+
+\begin{proof}
+	Let us denote by $ \mathcal{P}_1 $ and $ \mathcal{P}_2 $ the two portfolios and by $ v_t(\mathcal{P}) $ the value of a portfolio $ \mathcal{P} $ at time $ t $. By assumption $ v_T (\mathcal{P}_1) = v_T (\mathcal{P}_2) $, so we assume by contradiction that $ v_0 (\mathcal{P}_1) > v_0 (\mathcal{P}_2) $.
+	
+	Under this hypothesis it is possible to construct the following arbitrage strategy. At time 0, one can borrow the portfolio $ \mathcal{P}_1 $ and sell it right away to buy portfolio $ \mathcal{P}_2 $. One can pocket the difference $ v_0 (\mathcal{P}_1) - v_0 (\mathcal{P}_2) > 0 $. At $ t = T $ the values of the two portfolios coincide, so selling $ \mathcal{P}_2 $ one gets the exact money to buy $ \mathcal{P}_1 $ to be returned to the original lender. An profit is achieved, without investing any money, implying an arbitrage and violating the viable market hypothesis.
+	
+	Similarly, we can show that $ v_0 (\mathcal{P}_1) < v_0 (\mathcal{P}_2) $ would also enable an arbitrage opportunity. Generalising the argument to all intermediate times $ t \in [0, T] $, we get the result.
+\end{proof}
+
+We now look at the relationship. $ S_T - K = (S_T - K)_+ + (S_T - K)_- = (S_T - K)_+ - (K - S_T)_+ = c_T - p_T $. For any general time $ t $, using Proposition \ref{thm:intro-portfolio-eq}, it holds that $ c_t - p_t = S_t - K e^{- r (T-t) } $. This is known as the \emph{call-put parity}.
+
+
+\paragraph{Exotic options}
+European options are path-independent and the simplest type of options available. Hence, they are popularly known as \emph{vanilla options}. The American options are path-dependent. Typically, other options which are more complex in nature are collectively called \emph{exotic options}. These are usually path-dependent, and may be either European, American or have more complex exercise times. A few such options are described in brief.
+\begin{description}
+	\item[Asian] The payoff depends on the average of the underlying's prices.
+	\item[lookback] The payoff depends on one of the extrema of the underlying's prices.
+	\item[cliquet or ratchet] A series of globally or locally, capped or floored, at-the-money options, but where the total premium is determined in advance.
+	\item[barrier] The price of the underlying reaching the pre-set barrier level either springs the option into existence (\emph{knock-in}) or extinguishes an already existing option (\emph{knock-out}).
+\end{description}
+
+
+
+\section{Financial Markets}
+\label{sec:intro-market}
+
+The idea of financial markets is intricately linked to that of financial transactions. Analogous to the ordinary markets, a financial market is a human construct to allow transaction between investors. The assets in the financial market are typically financial instruments such as bonds, stocks and derivatives discussed in the previous section. In this section we will primarily concern ourselves with the nature of financial markets and the assumptions we make while modelling them. Some of the jargon used in the previous section will become clear after this section.
+
+Pricing of financial assets is one of the pressing aims of the subject of Financial Mathematics. In order to do so, we need to understand and characterise the fundamental mechanisms of the market that shape the pricing of assets. In doing so, we must note which dynamics of the market are more fundamental and must be incorporated in every model, and which are more debatable may be excluded from simpler models.
+
+\paragraph{Viable market}
+The term viability here refers to the fairness of a market. To interpret viability, we need to familiarise ourselves with some definitions.
+
+In what follows, we assume the following.
+\begin{itemize}
+	\item There is a probability space $ (\Omega, \mathcal{F}, (\mathcal{F}_t)_t, P) $, endowed with the filtration $ (\mathcal{F}_t)_t $.
+	\item $ \forall t \in [0, T], T \in [0, \infty) $, there is one riskless asset worth $ S_t^0 = e^{rt} $ (Take $ S_0^0 = 1 $).
+	\item $ \forall t \in [0, T], T \in [0, \infty) $, there are $ d $ risky assets each worth $ S_t^i $, where $ i \in \{ 1, 2, \dots, d \} $ is the index of the risky asset. These may be represented as a $ d $-dimensional (vector) stochastic process $ ( S_t^1, S_t^2, \dots, S_t^d ) $.
+\end{itemize}
+
+Also, any quantity with a `$ \sim $' on top denotes the discounted value of that quantity.
+
+
+\begin{dfn}[investment strategy]
+	A $ d + 1 $ dimensional (vector) stochastic process $ \Phi = (\bm{\phi_t})_t = (\phi_t^0, \phi_t^1, \dots, \phi_t^d)_t $ is called an \emph{investment strategy} or \emph{trading strategy} if $ \phi_t^i $ is $ \mathcal{F}_t $-measurable $ \forall i \in [d] $.
+\end{dfn}
+This means that there is a procedure to allocate resources within the portfolio at all times. We shall write strategy to mean investment strategy in the rest of the document.
+
+The following definition gives the value of a strategy at a point in time.
+\begin{dfn}[value of a strategy]
+	The value of a strategy $ \Phi $ at a time $ t $ is given by $ V_t( \Phi ) = \bm{\phi_t} \cdot S_t $.
+\end{dfn}
+
+\begin{dfn}[self-financing strategy]
+	A portfolio is self-financing if its changes in value are only due to changes in prices of the assets. This can be represented as follows.
+	\begin{subequations}
+		\begin{align}
+			\dif V_t &= \bm{\phi_t} \cdot \dif S_t \qquad \forall t \in [0, T]  \\
+			\implies  \qquad  \dif \tilde{V}_t &= \bm{\phi_t} \cdot \dif \tilde{S}_t \qquad \forall t \in [0, T]
+		\end{align}
+	\end{subequations}
+\end{dfn}
+This implies that we do not put in any fresh money in the strategy at any point of time, apart from what is generated due to the change is values of the underlying assets.
+
+\begin{dfn}[admissible strategy]
+	A self-financing strategy $ \Phi $ is said to be admissible if $ V_t( \Phi ) \ge 0 \  \forall t \in [0, T] $.
+\end{dfn}
+This implies that we do not run out of money at any point of time.
+
+\begin{dfn}[arbitrage strategy]
+	An admissible strategy $ \Phi $ is said to be an arbitrage strategy if $ V_0( \Phi ) = 0 $ and $ P( V_T( \Phi ) > 0 ) > 0 $.
+\end{dfn}
+A arbitrage strategy basically means that it generates value at time $ T $ without any initial investment. For the sake of fairness, we do not want a market in which there exist arbitrage opportunities. The next definition addresses this issue.
+
+\begin{dfn}[viable market, no free lunch]
+	A market is called \emph{viable}, or there is \emph{no free lunch}, if there does not exist any arbitrage strategies.
+\end{dfn}
+
+We will see in Theorem \ref{thm:discrete-ftoap1} of Chapter \ref{cha:models} how the financial concept of viability translates mathematically to the existence of equivalent martingale measures.
+
+
+\paragraph{Complete market}
+
+\begin{dfn}[hedgeable, attainable]
+	A derivative is called hedgeable or attainable if it can be represented as a linear combination of the \emph{basic assets} at all times. Basic assets include stocks, bonds and commodities whose prices are \emph{not} directly linked to other assets in the market.
+\end{dfn}
+
+\begin{dfn}[complete market]
+	A market is said to be complete if all derivatives are hedgeable.
+\end{dfn}
+
+A market is complete if the traded basic assets represent all the random factors that influence the course of prices. If we are in complete market model, this means that, whatever be the contract, one can always set a hedging strategy that equals the final value of the derivative. This hedging strategy employs, by definition, only the basic assets (riskless and risky) traded on the market. In a sense those derivatives are redundant, they do not introduce any additional risk factor; any randomness source is represented by the basic assets prices and it is tradeable.
+
+This implies that the marginal probability distributions of the derivative price are uniquely determined by the marginal distributions of the prices of the basic assets. Namely, each derivative is replicable, so its price at all times may be written as the value of a portfolio employing basic assets only, that is to say it is a linear combination of the prices of the basic assets. On the other hand, in a viable market the discounted value of a portfolio is a martingale under the risk-neutral probability, so if a contingent claim is attainable, then its price, by the martingale property, belongs to the linear span of the basic assets' prices under this probability. Vice versa, if the market is incomplete, then there must be sources of randomness that cannot be totally represented as linear combinations of the prices of the basic tradeable assets, which means that the basic titles are not sufficient to construct all the necessary hedging strategies.
+
+We will see in Theorem \ref{thm:discrete-ftoap2} of Chapter \ref{cha:models} how the financial concept of market completeness translates mathematically to the existence of a unique equivalent martingale measure.
+
+
+\paragraph{Frictionless market}
+For any transaction (sale or purchase) in the market, one usually pays some \emph{commission}. The commission is a very small fraction of the current value of the traded assets, and it seems reasonable to assume that it is not a factor that affects the dynamics of the prices in a direct fashion. Furthermore, the computational difficulty of including such transactional costs in the market is quite high. Thus, we choose to ignore such costs in the simple market models that we shall deal with, and call the market as \emph{frictionless}.
+
+\begin{dfn}[frictionless market]
+	A market is called frictionless if there are no transaction costs.
+\end{dfn}
+
+
+\paragraph{Infinitely divisible assets}
+In a market, usually only discrete units of assets may be bought or sold. This would pose an additional constraint in the modelling of the market. But it is quite evident that this constraint does in no way affect prices of individual assets. Furthermore, markets are usually so varied that one might think to combine stocks and bonds to a value that is roughly equivalent to a fraction of a different asset. Thus, we ignore this constraint in our market models, and say that we may have \emph{infinitely divisible assets} in our market.
+
+
+\paragraph{Small investor hypothesis}
+An investor who has virtually unlimited funds might decide to buy massive quantities of an asset to make its price rise in order to sell it later at a higher price. We shall ignore such cases, and assume that all agents are trifling with respect to the market dimension, meaning that they cannot influence prices uniquely by means of their investing strategies, hence prices are determined only by the combined actions of all agents. This assumption is called the \emph{small investor hypothesis} and it is totally realistic in bigger stock markets like for those in the United States, even though it is less so for much smaller markets.
+
+
+\paragraph{Borrowing}
+Lastly, we assume that an investor may borrow assets, whether they are financial instruments such as money, bonds and stocks, or otherwise.
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

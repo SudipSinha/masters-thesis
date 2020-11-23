@@ -1,0 +1,171 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Short Sectioned Assignment
+% LaTeX Template
+% Version 1.0 (5/5/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Frits Wenneker (http://www.howtotex.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+\documentclass[a4paper]{article}
+
+\usepackage[hmarginratio=1:1,top=32mm,margin=20mm]{geometry} % Document margins
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}	% Use 8-bit encoding that has 256 glyphs
+\usepackage[english]{babel}	 % English language/hyphenation
+%\usepackage[utf8x]{inputenc}
+\usepackage{amsmath,amsfonts,amsthm,bm} % AMS - Math, Fonts, Theorems, BoldMath
+\usepackage{graphicx} % For putting pictures
+\usepackage{booktabs} % Horizontal rules in tables
+\usepackage{hyperref} % For hyperlinks in the PDF
+
+\usepackage{fancyhdr} % Headers and footers
+\pagestyle{fancy} % All pages have headers and footers
+\fancyhead{} % Blank out the default header
+\fancyfoot{} % Blank out the default footer
+\fancyhead[C]{Thesis} % Custom header text
+\fancyfoot[L]{MathMods $\bullet$ 2015 Apr}
+\fancyfoot[R]{Page \huge{\thepage}} % Custom footer text
+
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
+\newtheorem{thm}{Theorem}
+\newtheorem{corr}{Corollary}
+\newtheorem{lem}{Lemma}
+\newtheorem{prop}{Proposition}
+\newtheorem*{rem}{Remark}
+\newtheorem{defn}{Definition}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+\title{	
+\normalfont \normalsize 
+\textsc{Thesis} \\ [25pt]
+\horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
+\huge The Singular Points method for Asian American options for local volatility models % The assignment title
+\horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+}
+
+\author{Sudip Sinha}
+
+\date{\normalsize\today}
+
+\begin{document}
+
+\maketitle	% Print the title
+
+%\begin{abstract}
+%Your abstract.
+%\end{abstract}
+
+%----------------------------------------------------------------------------------------
+%	PROBLEM 1
+%----------------------------------------------------------------------------------------
+
+
+\section{Introduction}
+The Singular Points method for Asian American options for local volatility models.
+
+
+\section{Notations}
+$[n] = \{0, 1, 2, \dots, n\}$
+
+
+\section{Basic formulae}
+
+\begin{subequations} \label{eq:arithmeticmean}
+Arithmetic average
+\begin{align}
+A_{n} &= \frac{\sum_{i=0}^n S_i}{n+1} \\
+\implies (n+1) A_{n} &= \sum_{i=0}^n S_i
+\end{align}
+\end{subequations}
+
+
+\section{Results}
+
+\begin{defn}[Path]
+A path is a sequence $(j_i)_{i \in [n]}$ such that $j_{i+1} \in \{ j_i,j_i+1 \}$.
+\end{defn}
+
+
+\begin{lem}
+Let there be two paths $\alpha$ and $\beta$, such that $S_{i,j_i^\alpha} >= S_{i,j_i^\beta} \; \forall i$. Then $A^\alpha >= A^\beta$.
+\end{lem}
+
+\begin{proof}
+Clearly if $S_{i,j_i^\alpha} = S_{i,j_i^\beta} \; \forall i$, then $A^\alpha = A^\beta$.
+
+We only need to show the case of inequality.
+Let $S_{i,j_i^\alpha} = S_{i,j_i^\beta} \; \forall i \in [n] \setminus \{l\}$. That is, $S_{l,j_l^\alpha} > S_{l,j_l^\beta}$.
+
+Now, from equation \ref{eq:arithmeticmean}, we have:
+\begin{align*}
+(n+1) A_{n,j}^\alpha &= \sum_{i=0}^{l-1} S_{i,j_i} + S_{l,j_l^\alpha} + \sum_{i=l+1}^{n} S_{i,j_i} \\
+(n+1) A_{n,j}^\beta &= \sum_{i=0}^{l-1} S_{i,j_i} + S_{l,j_l^\beta} + \sum_{i=l+1}^{n} S_{i,j_i} \\
+\implies (n+1) \left(A_{n,j}^\alpha - A_{n,j}^\beta\right) &= S_{l,j_l^\alpha} - S_{l,j_l^\beta} \\
+	&= S_{l-1,j_{l-1}} u_l - S_{l-1,j_{l-1}} d_l \\
+	&= S_{l-1,j_{l-1}} (u_l - d_l) > 0 \\
+\implies A_{n,j}^\alpha > A_{n,j}^\beta
+\end{align*}
+
+\end{proof}
+
+
+\begin{rem}
+The path $\alpha$ signifies the path above and $\beta$ signifies the path below. Thus, the path above always has a higher arithmetic mean.
+\end{rem}
+
+
+\begin{corr}
+At each node $N(n,j)$, the average values vary between a minimum average $A_{n,j}^{\mathrm{min}}$ (corresponding to the path with $(n-j)$ down movements followed by $j$ up movements) and a maximum average $A_{n,j}^{\mathrm{max}}$ (corresponding to the path with $j$ up movements followed by $(n-j)$ down movements).
+\end{corr}
+
+\begin{proof}
+The path 'min' is the bottom-most one and 'max' is the topmost one.
+\end{proof}
+
+
+\begin{lem}[Lemma 3]
+The price function at maturity $v_{n,j}$ is convex and piecewise linear.
+\end{lem}
+\begin{proof}
+By construction. See the paper.
+\end{proof}
+
+
+\begin{lem}[Lemma 4]
+The price function $v_{i,j}$ is concave and non-linear.
+\end{lem}
+\begin{proof}
+\ref{eq:arithmeticmean}
+
+\end{proof}
+
+\section{Conclusion}
+The singular points method may not be used to price Geometric Asian options.
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

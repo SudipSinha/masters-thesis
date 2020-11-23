@@ -1,0 +1,31 @@
+% !TeX root = ../thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+A path-dependent option is a type of exotic option in which the payoff depends not only on the price of the underlying asset at maturity, but also on the history of the underlying's price till that point. Typical examples of popular exotic options are Asian options, lookback options, barrier options, and digital options.
+
+In the Black-Scholes market model, it is not possible to find closed-form analytical formulae for the payoffs of most exotic options. This inspires the requirement of fast numerical algorithms to determine the fair value of such options. Such algorithms may be clustered into categories. Some algorithms utilise the convergence of prices calculated using a discrete model to those of a continuous model, as a limit when the time step is reduced. Other approaches include use of numerical methods to solve partial differential equation, or simulation using Monte Carlo methods.
+
+Under the Cox-Ross-Rubinstein model, Gaudenzi\footnote{\url{http://people.uniud.it/page/marcellino.gaudenzi}}, Zanette\footnote{\url{http://people.uniud.it/page/antonino.zanette}} and Lepellere\footnote{\url{https://www.researchgate.net/profile/Maria_Lepellere}} introduced the singular points method. It is a numerical method to price Asian and lookback options. A modification enables pricing of cliquet options. In the method, in each node of the binomial tree of the underlying risky asset, the price is represented as a continuous function of the path-dependent parameter. An advantage of this method over pre-existing methods is its low order of computational and space complexity. It is convergent, and allows us to set \emph{a priori} upper and lower bounds on the error.
+
+In the master's thesis, we present an exposition on the \emph{singular points} method and how it may be used to price exotic options. We also explore the extensibility of the method to similar types of options, like Asian options with geometric mean as opposed to arithmetic mean, and whether it may be used for variable local volatilities and interest rates. We also found the computational order of complexity of the method in the case of cliquet options.
+
+
+\paragraph{Prerequisites}
+The reader is expected to be familiar about basic Probability Theory and Stochastic Processes. In particular, (s)he should be comfortable with probability spaces and measures, filtrations, random variables, stochastic processes, martingales, Brownian motion, and elementary stochastic calculus. There is no strict requirement of knowledge of financial concepts, as we introduce the required terminologies in the introductory chapters.
+
+
+\paragraph{Note to the reader}
+The theory part of the thesis borrows heavily from the book titled Introduction to Stochastic Calculus Applied to Finance by Damien Lamberton and Bernard Lapeyre \cite[]{Lamberton1996}, as well as from the lecture notes of Mathematical Finance authored by Prof. Fabio Antonelli. This course was offered in the Fall semester of 2014-15 in Università degli Studi dell'Aquila, Italy.
+
+The chapters on the singular point method has been motivated by the series of papers published by Gaudenzi, Zanette and Lepellere on the same topic.
+
+
+\paragraph{Structure of the thesis}
+In Chapter \ref{cha:prologue}, we briefly discuss financial assets and financial markets. In Chapter \ref{cha:models}, we introduce the Cox-Ross-Rubinstein model and the Black-Scholes model. In chapters \ref{cha:asian} and \ref{cha:cliquet}, we see how the singular points method may be used to price Asian and cliquet options, respectively. 
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

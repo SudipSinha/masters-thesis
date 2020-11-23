@@ -1,0 +1,72 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{pgf,tikz}
+\usepackage{mathrsfs}
+\usetikzlibrary{arrows}
+\pagestyle{empty}
+\begin{document}
+\definecolor{ffxfqq}{rgb}{1.,0.4980392156862745,0.}
+\definecolor{ffqqff}{rgb}{1.,0.,1.}
+\definecolor{ffqqqq}{rgb}{1.,0.,0.}
+\definecolor{cqcqcq}{rgb}{0.7529411764705882,0.7529411764705882,0.7529411764705882}
+\definecolor{yqyqyq}{rgb}{0.5019607843137255,0.5019607843137255,0.5019607843137255}
+\definecolor{zzttqq}{rgb}{0.6,0.2,0.}
+\definecolor{eqeqeq}{rgb}{0.8784313725490196,0.8784313725490196,0.8784313725490196}
+\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=0.5cm,y=0.5cm]
+\draw [color=eqeqeq,dotted, xstep=1.0cm,ystep=1.0cm] (0.,0.) grid (17.,13.);
+\draw[->,color=black] (0.,0.) -- (17.,0.);
+\foreach \x in {,2.,4.,6.,8.,10.,12.,14.,16.}
+\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+\draw[color=black] (19.331518286661222,0.09147871036844199) node [anchor=south west] { x};
+\draw[->,color=black] (0.,0.) -- (0.,13.);
+\foreach \y in {,2.,4.,6.,8.,10.,12.}
+\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt);
+\draw[color=black] (0.11434836911708768,13.348146099032755) node [anchor=west] { y};
+\clip(0.,0.) rectangle (17.,13.);
+\draw [line width=1.2pt,color=yqyqyq] (8.,5.)-- (12.,8.);
+\draw [line width=1.2pt,color=yqyqyq] (16.,12.)-- (12.,8.);
+\draw [line width=1.2pt,color=yqyqyq] (8.,5.)-- (4.,3.);
+\draw [line width=1.2pt,color=yqyqyq] (4.,3.)-- (1.,2.);
+\draw [line width=0.4pt,color=cqcqcq] (12.,8.)-- (12.,0.);
+\draw [line width=0.4pt,color=cqcqcq] (8.,5.)-- (8.,0.);
+\draw [line width=0.4pt,color=cqcqcq] (4.,3.)-- (4.,0.);
+\draw [line width=0.4pt,color=cqcqcq] (1.,2.)-- (1.,0.);
+\draw [dash pattern=on 1pt off 1pt,color=ffqqqq] (4.,3.)-- (12.,8.);
+\draw [dash pattern=on 1pt off 1pt,color=ffqqff] (8.,5.)-- (10.,6.);
+\draw [dash pattern=on 1pt off 1pt,color=ffqqff] (12.,8.)-- (10.,6.);
+\draw [line width=0.4pt,color=cqcqcq] (10.,6.)-- (10.,0.);
+\draw [color=ffxfqq] (8.,5.)-- (8.,5.5);
+\draw [color=ffxfqq] (10.,6.)-- (10.,6.5);
+\draw [line width=0.4pt,color=cqcqcq] (16.,12.)-- (16.,0.);
+\begin{scriptsize}
+\draw [fill=zzttqq] (16.,12.) circle (1.5pt);
+\draw[color=zzttqq] (16.244112320499855,11.221266082966478) node {$P_5$};
+\draw [fill=zzttqq] (12.,8.) circle (1.5pt);
+\draw[color=zzttqq] (12.19618005375495,7.15046347157081) node {$P_4$};
+\draw [fill=zzttqq] (8.,5.) circle (1.5pt);
+\draw[color=zzttqq] (8.262596156127135,4.4289718381096606) node {$P_3$};
+\draw [fill=zzttqq] (4.,3.) circle (1.5pt);
+\draw[color=zzttqq] (4.237533563205647,2.439309887596047) node {$P_2$};
+\draw [fill=zzttqq] (1.,2.) circle (1.5pt);
+\draw[color=zzttqq] (1.2187366185145323,1.6160014942800691) node {$P_1$};
+\draw [fill=zzttqq] (16.,0.) circle (1.5pt);
+\draw[color=zzttqq] (16.19837297285302,0.5868660026350968) node {$x_5$};
+\draw [fill=zzttqq] (12.,0.) circle (1.5pt);
+\draw[color=zzttqq] (12.150440706108114,0.5639963250429862) node {$x_4$};
+\draw [fill=zzttqq] (8.,0.) circle (1.5pt);
+\draw[color=zzttqq] (8.19398713465688,0.5411266474508758) node {$x_3$};
+\draw [fill=zzttqq] (4.,0.) circle (1.5pt);
+\draw[color=zzttqq] (4.237533563205647,0.5411266474508758) node {$x_2$};
+\draw [fill=zzttqq] (1.,0.) circle (1.5pt);
+\draw[color=zzttqq] (1.1958669446911148,0.6097356802272074) node {$x_1$};
+\draw [fill=zzttqq] (10.,0.) circle (1.5pt);
+\draw[color=zzttqq] (10.25225777876446,0.5639963250429862) node {$x_{34}$};
+\draw [fill=ffqqff] (10.,6.) circle (1.5pt);
+\draw[color=ffqqff] (10.229388104941041,5.389498296978302) node {$Q_{34}$};
+\draw [fill=ffqqqq] (8.,5.5) circle (1.5pt);
+\draw[color=ffqqqq] (8.011029744069539,6.144197657517948) node {$Q_3$};
+\draw [fill=zzttqq] (10.,6.5) circle (1.5pt);
+\draw[color=zzttqq] (10.0464307143537,7.333420892307694) node {$P_{34}$};
+\end{scriptsize}
+\end{tikzpicture}
+\end{document}

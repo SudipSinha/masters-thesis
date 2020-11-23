@@ -1,0 +1,137 @@
+% !TeX root = presentation.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright 2010 Jasper Bosch (p.j.bosch@student.rug.nl)  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Some parts of this theme are based on the 'diepentheme' %
+% by Guido Diepen <diepen@cs.uu.nl>                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% See also: http://tex.stackexchange.com/questions/162873/i-need-a-beamer-theme-simulating-blackboard-presentation
+
+\ProvidesPackage{beamerthemeblackboard}
+
+\RequirePackage{beamerbasethemes}[2004/10/07]
+\RequirePackage{calc}
+\RequirePackage{ifthen}
+
+\input Sanremo.fd
+\newcommand*\initfamily{\usefont{U}{Sanremo}{xl}{n}}
+\usepackage[sfdefault,condensed]{cabin}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}	   % English hyphenation
+\usepackage{csquotes}		 % Multilingual quotes
+\usepackage[babel]{microtype}    % Awesome microtyping
+\usepackage{emerald}
+\useoutertheme{blackboard}
+
+\usepackage{booktabs}    % Better tables
+%\usepackage{tablefootnote}    % Allows footnotes in tables
+\usepackage{commath}    % Differential operators
+\usepackage{bm}
+\usepackage{multirow}
+
+\usepackage{wasysym}
+\newcommand\pro{\item[\textbf{\CheckedBox}]}
+\newcommand\con{\item[\textbf{\XBox}]}
+\newcommand\neu{\item[\textbf{\Square}]}
+
+
+% Graphics
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\graphicspath{{img/}}    % Central repository for images
+
+% Bibliography
+\usepackage[backend=biber,style=alphabetic,sorting=ydnt]{biblatex}
+\addbibresource{thesis.bib}
+
+
+% remove navigation symbols
+%\setbeamertemplate{navigation symbols}{}
+
+\mode<presentation>
+
+% set text colors for different objects
+\setbeamercolor{frametitle}{fg=Bisque}
+\setbeamercolor{structure}{fg=PeachPuff}
+\setbeamercolor{normal text}{fg=white}
+\setbeamercolor{alerted text}{fg=green}
+\setbeamercolor{example text}{fg=white}
+
+% set fonts
+\setbeamerfont{my frametitle}{size=\Large}
+\setbeamerfont{framesubtitle}{size=\large}
+\setbeamerfont{title}{size=\huge}
+\setbeamerfont{subtitle}{size=\Large}
+\setbeamerfont{author}{size=\large}
+\setbeamerfont{date}{size=\large}
+\setbeamerfont{institute}{size=\large}
+
+%\setbeamerfont{my frametitle}{size=\Huge, series=\ECFAugie}
+%\setbeamerfont{framesubtitle}{size=\large, series=\ECFAugie}
+%\setbeamerfont{title}{size=\huge, series=\ECFAugie}
+%\setbeamerfont{subtitle}{size=\Large, series=\ECFAugie}
+%\setbeamerfont{author}{size=\large}
+%\setbeamerfont{date}{size=\large}
+%\setbeamerfont{institute}{size=\large}
+%\setbeamerfont{caption}{series=\ECFAugie}
+
+% Date in the corner
+\setbeamertemplate{headline}{
+	\rotatebox{30}{
+		\ifx\insertdate\empty\else        
+		\hspace*{0.25cm}\color{PeachPuff}\initfamily\insertshortdate\hspace*{0.5cm}
+		\fi
+	}
+	\vspace*{-1cm}
+}
+
+%% Highlighted contents at the beginning of each section
+%\AtBeginSection[]
+%{
+%	\begin{frame}
+%		\frametitle{Table of Contents}
+%		\tableofcontents[currentsection]
+%	\end{frame}
+%}
+
+
+% Figures
+\usepackage{pgf,tikz}
+\usepackage{mathrsfs}
+\usetikzlibrary{arrows,shapes.geometric,shapes.misc}
+
+\tikzset{
+	header/.style={
+		% The shape:
+		rectangle,minimum size=6mm,
+		% The rest
+		draw=black!10,
+	}}
+	
+	\tikzset{
+		term/.style={
+			% The shape:
+			shape=rectangle,rounded corners=3mm,
+			% The size:
+			minimum size=6mm,
+			% The border:
+			very thick,
+			draw=red!50!black!50, % 50% red and 50% black,
+			% and that mixed with 50% white
+			% The filling:
+%			top color=white, % a shading that is white at the top...
+%			bottom color=red!50!black!20 % and something else at the bottom
+		}}
+		
+	\tikzset{
+		nterm/.style={
+			% The shape:
+			rectangle,minimum size=6mm,rounded corners=3mm,
+			% The rest
+			very thick,draw=black!30,
+%			top color=black!05,bottom color=black!10,
+		}}

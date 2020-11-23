@@ -1,0 +1,1140 @@
+% !TeX root = ../thesis.tex
+% !TeX spellcheck = en_GB
+% !TeX encoding = UTF-8
+
+
+In the last chapter, we saw that exotic options usually cannot be priced in a closed-form formula using the Black-Scholes model. The way out is by using numerical methods. These methods range from using discrete models (which converge to continuous models, as remarked in Chapter \ref{cha:models}), to discretisation of the Black-Scholes PDE or using Monte Carlo simulations.
+
+The advantage of using the Cox-Ross-Rubinstein model is that it converges to the Black-Scholes model as the number of time steps increases to infinity. But the exponential number of paths ($2^n$ to be exact, where $n$ is the number of time steps) make the method very slow and memory intensive, making it computably impractical. A logical step would be to modify the basic Cox-Ross-Rubinstein model to allow for approximations. In this direction, Gaudenzi et al\cite{Gaudenzi2010} introduced a new method called the \emph{singular points method} for pricing certain path-dependent options in an efficient manner.
+
+In this chapter, we will mainly focus on applying the singular points method to price Asian options. In Asian options, the price is expressed as a function of some form of averaging on the underlying's price. Popular Asian options use the arithmetic or geometric means as the average. Again, Asian options may be exercised only at maturity (European) or at any time before maturity (American). They may give the owner of the option the right to either sell (put) or buy (call). Theoretically, we will only study calls, because the framework for puts one may be derived in the exact same way.
+
+
+
+\section{Literature Review}
+\label{sec:asian-literature-review}
+
+Before we go into the details of the singular points method, we shall look into the pre-existing methods of pricing Asian options, and discuss their advantages and disadvantages briefly. As we remarked in Section \ref{subsec:continuous-other}, Asian options with arithmetic mean cannot be valued by closed-form formulae in the Black–Scholes model, and their valuation requires the use of numerical methods. Here we consider a tree method for pricing these types of options.
+
+The main barrier to applying the Cox–Ross–Rubinstein method \cite{Cox1979} introduced in Chapter \ref{cha:models} to Asian options with arithmetic averages is the exponential increase in the number of paths that the underlying may take, and this increases the computational difficulty very quickly as we increase the number of time steps.
+
+\paragraph{Tree methods}
+Alternative feasible approaches were proposed by Hull and White (1993) \cite{Hull1993}, and Barraquand and Pudet (1996) \cite{Barraquand1996}. The main idea behind their procedures is to restrict the range of all the possible arithmetic averages to a set of representative values. These values are selected in order to span all the possible values of the averages achievable at each node of the tree. The price is then computed by a backward induction procedure in which the prices associated with averages not included in the set of representative values are obtained by interpolation. Both of these methods reduce the computational complexity to $ O(n^3) $, $ n $ being the number of steps. Nevertheless, the advantage of speed is offset by the fact that it is difficult to control the precision of the approximations and the convergence to the continuous value. This was highlighted by Forsyth \emph{et al} \cite{Forsyth2002} in 2002. Forsyth \emph{et al} also proved that a procedure of order $ O(n^{\frac{7}{2}}) $ is necessary in order to assure the convergence of these algorithms.
+
+Later, Chalasani \emph{et al} (1999) \cite{Chalasani1999} proposed a totally different approach, which allowed them to obtain thin upper and lower bounds on the exact Cox–Ross–Rubinstein binomial price for American Asian options. Their method requires a forward procedure and a backward induction. This algorithm significantly increases the precision of the estimates but requires a very large amount of memory and has computational complexity $ O(n^4) $.
+
+\paragraph{PDE based methods}
+All of the above were tree methods. More recently, very efficient partial differential equation (PDE)-based methods have been introduced by Vecer (2001) \cite{Vecer2001} and d'Halluin et al (2005) \cite{dHalluin2005}. In Vecer's method, the price of the Asian option is characterized by a simple one-dimensional partial differential equation which could be applied to both continuous and discrete average Asian option. The computational complexity is $ O(n^2) $. This approach cannot be applied to American fixed-strike Asian options, which, on the other hand, can be treated using the semi-lagrangian approach of d'Halluin \emph{et al}.
+
+Table \ref{tab:asian-literature-review} briefly reviews the discussion above.
+\begin{table}[h]
+	\centering
+	\caption{Pre-existing methods for Asian options}
+	\label{tab:asian-literature-review}
+	% \rowcolors{1}{Burlywood1}{}
+	\begin{tabular}{cccl}
+		\toprule
+		Method  &  Type  &  Complexity  &  Remarks  \\
+		\midrule
+		Binomial  &  Tree  &  $ O(2^n) $  &  simple, accurate, convergence to continuous  \\
+		Hull \& White  &  Tree  &  $ O(n^3) $  &  accuracy and convergence problems  \\
+		Barraquand \& Pudet  &  Tree  &  $ O(n^3) $  &  accuracy and convergence problems  \\
+		Chalasani et al  &  Tree  &  $ O(n^4) $  &  thin bounds, but very large memory  \\
+		Vecer  &  PDE  &  $ O(n^2) $  &  not universally applicable  \\
+		d'Halluin  &  PDE  &  NA  &  more general than Vecer \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+
+A number of these algorithms has been implemented in Premia 13. Premia is a software designed for option pricing, hedging and financial model calibration. It has been developed by the `MathFi' team in INRIA. It is provided with its C/C++ source code and an extensive scientific documentation. More information about Premia can be found at the dedicated  website\footnote{\url{https://www.rocq.inria.fr/mathfi/Premia/}}.
+
+
+\section{The exact binomial algorithm}
+\label{sec:asian-binom}
+In what follows, we shall assume that the evolution of the prices of the risky asset $ (S_t)_t $ is governed by the Black-Scholes stochastic differential equation as discussed in Equation \ref{eq:continuous-risky-sde-risk-neutral} of Chapter \ref{cha:models}. Its solution is given by Equation \ref{eq:continous-risky}b. Whenever there is a continuous dividend yield, we modify the equation according the remark \ref{rem:continuous-dividend}.
+
+Consider the discrete model. If the number of time steps in the binomial tree is $ n $, then the corresponding time step is $ \Delta T = \frac{T}{n} $. The lognormal diffusion process $ (S_{i \Delta T})_{i \in [n]} $ is approximated by the Cox–Ross–Rubinstein binomial process (refer Equation \ref{eq:discrete-risky-prod-iid}).
+\begin{equation*}
+	S_i = s_0 \prod_{j=1}^{i} T_j  \qquad  \forall i \in [n] .
+\end{equation*}
+
+As usual, we represent the risk-neutral probability by $ p = \frac{R - d}{u - d} $, where $ u = d^{-1} = e^{\sigma \sqrt{\Delta T}} $. We denote the effective rate of interest in each period as $ R \coloneqq e^{r \Delta T} $. We note that $R$ is not an instantaneous quantity, but one which is constant on an interval of time.
+
+Asian options are dependent on the average prices of the underlying risky asset. The price of an Asian option of the American type with initial time $ 0 $ and maturity $ T $ is given by the risk-neutral expectation calculated at an optimal stopping time (see Definiton \ref{dfn:discrete-optimal-stopping-time} from Chapter \ref{cha:models}).
+\begin{equation}
+	P(0, s_0, a_0) = \sup_{\tau \in \mathcal{T}_{[0,T]}}  \E^* \left(  e^{-r \tau} \  h(S_{\tau}, A_{\tau})  \mid  S_0 = s_0, A_0 = s_0  \right)
+\end{equation}
+The quantities used in the formula are explained below.
+\begin{description}
+	\item[$ \mathcal{T}_{[0,T]} $] the set of all stopping times with values in $ [0, T ] $
+	\item[$ h $] the payoff function, dependent on both the underlying's price and its average
+	\item[$ S_{\tau} $] the underlying's price at time $ \tau $
+	\item[$ A_{\tau} $] (some form of) the average of the price of the underlying asset over the period $ [0, \tau] $
+\end{description}
+
+Let $ K $ denote the strike price. The price function may be one of the following
+\begin{description}
+	\item[fixed Asian call] $ h(A_T) = (A_T - K)_+ $
+	\item[fixed Asian put] $ h(A_T) = (K - A_T)_+ $
+	\item[floating Asian call] $ h(S_T, A_T) = (S_T - A_T)_+ $
+	\item[floating Asian put] $ h(S_T, A_T) = (A_T - S_T)_+ $
+\end{description}
+
+
+\begin{dfn}[arithmetic mean]
+	The arithmetic mean of a set of $ n+1 $ numbers $ \{ S_i \}_{i \in [n]} $ is given by:
+	\begin{equation}
+	\label{eq:am}
+	A_{n} = \frac{\sum_{i=0}^n S_i}{n+1}
+	\end{equation}
+\end{dfn}
+
+In the rest of the chapter, we will assume that the average means arithmetic mean, unless otherwise stated.
+
+In the Cox–Ross–Rubinstein model, consider a node at time $ i $. Let the price of the underlying be given by $ x $, and the arithmetic mean of the underlying till time $ i $ be given by $ y $. There are two possibilities for the asset price in the next time $ t = i + 1 $, namely $ x u $ and $ x d $. The average corresponding to the up and down movements become:
+\begin{align*}
+	A_{i+1}^u  &=  \frac{(i+1) A_i + x u}{i+2}  =  \frac{(i+1) y + x u}{i+2}  \\
+	A_{i+1}^d  &=  \frac{(i+1) A_i + x d}{i+2}  =  \frac{(i+1) y + x d}{i+2}
+\end{align*}
+
+Due to the Markov property of the pair of processes $ (S_t, A_t)_t $, we may use those as state variables in our evaluation formula. The price at time $ 0 $ of the Asian option of the European type with payoff function $ h(x, y) $ is given by $ v(0, s_0, s_0) $ (since $ a_0 = s_0 $), where the functions $ v(i, x, y) $ can be computed by the following backward dynamic programming equations, which are discounted risk-neutral expectation of the prices at the next time.
+\begin{subequations}
+	\label{eq:asian-dp-eu}
+	\begin{align}
+		v(n, x, y)  &=  h(x,y)  \\
+		v(i, x, y)  &=  \frac{1}{R} \left(  p v \left( i + 1, x u, \frac{(i + 1) y + x u}{i + 2} \right)  \right.  \\
+		&  \qquad  \left. + (1-p) v \left( i + 1, x d, \frac{(i + 1) y + x d}{i + 2} \right)  \right)  \qquad   \forall i \in [n - 1]  \nonumber
+	\end{align}
+\end{subequations}
+
+In case of Asian options of the American type, we modify the equations accordingly.
+\begin{subequations}
+	\label{eq:asian-dp-am}
+	\begin{align}
+		v(n, x, y)  &=  h(x,y)  \\
+		v(i, x, y)  &=  \max \left\lbrace  h(x, y), \frac{1}{R} \left(  p v \left( i + 1, x u, \frac{(i + 1) y + x u}{i + 2} \right)  \right. \right. \\
+		&  \qquad  \left. \left. + (1-p) v \left( i + 1, x d, \frac{(i + 1) y + x d}{i + 2} \right)  \right)  \right\rbrace  \qquad  \forall i \in [n - 1]  \nonumber
+	\end{align}
+\end{subequations}
+
+The payoff is a function of the average, which is clearly path-dependent. Thus, the option is path-dependent, and the corresponding price tree is non-recombinant. This makes the classical binomial method infeasible after a small number of steps. Note that the binomial tree for the underlying is always recombinant for constant volatility.
+
+
+\section{The singular points method}
+\label{sec:asian-method}
+
+The price of an Asian option at each instance is a continuous function of the underlying's average. Since the number of paths to a node in a binomial tree is finite, we have that at each node of the underlying's binomial tree, the option price may be represented as a piecewise-linear, continuous, convex function of the average. We shall develop the theoretical idea in this section. In the subsequent section, we shall see that the nature of the function allows us to make approximations with \emph{a priori} error bounds.
+
+
+\begin{dfn}[singular points and singular values] \label{def:asian-sp}
+	Let $ P = (P_i)_{i \in [n]} = ( (x_i, y_i) )_{i \in [n]} $, $ n \in \mathbb{N} $ be a sequence of points such that
+	\begin{subequations}
+		\label{eq:asian-conditions}
+		\begin{align}
+			a =& x_0 < x_1 < \dots < x_{n-1} < x_n = b  \\
+			m_{i+1} :=& \frac{y_{i+1} - y_{i}}{x_{i+1} - x_{i}} \le \frac{y_{i+2} - y_{i+1}}{x_{i+2} - x_{i+1}} = m_{i+2} \qquad \forall i \in \{ 1, \dots, n-1 \} .  \label{eq:asian-condition-slope}
+		\end{align}
+	\end{subequations}
+	
+	Let $ f:[a,b] \to [0, \infty) $ be the function obtained by linear interpolation of the points in $P$. From the definition of $f$ and \ref{eq:asian-condition-slope}, the function is continuous, piecewise-linear and convex.
+	
+	Then, the elements of $P$ are called \emph{singular points of $f$} and the abscissae $ \{ x_i \}_{i \in [n]} $ are called \emph{singular values of $f$}.
+\end{dfn}
+
+
+\begin{rem}
+	\label{rem:asian-char}
+	We note that the singular points characterise such a function completely. This can be seen from the following representation of the function.
+	\begin{equation}
+		\label{eq:asian-function-repr}
+		f(x) = y_0 + \sum_{i=1}^n [ m_i ( \min \{x_{i}, x \} - \min \{ x_{i-1}, x \} ) ] .
+	\end{equation}
+	Where $ m_{i+1} = \frac{y_{i+1} - y_{i}}{x_{i+1} - x_{i}} $ represents the slope of the function between $ x_{i} $ and $ x_{i+1} $.
+\end{rem}
+
+\begin{rem}
+	From the conditions \ref{eq:asian-conditions}, we get the following inequality.
+	\begin{equation*}
+		y_0 < y_1 < \dots < y_{n-1} < y_n
+	\end{equation*}
+	So it is equivalent to sort points using either abscissae or ordinates.
+\end{rem}
+
+
+
+\subsection{Upper estimates}
+\label{subsec:asian-upper-estimates}
+
+The following lemmas shall provide us with the necessary framework for upper and lower estimates for approximations on the functions generated by singular points.
+
+\begin{lmm}[Upper estimate]
+	\label{lmm:asian-upper-estimate}
+	Let $ f:[a,b] \to [0, \infty) $ be a continuous, piecewise-linear, convex function characterised by the singular points $ P = ( (x_i, y_i) )_{i \in [n]} $. Then, if a point $ (x_j, y_j), j \in \{ 1, \dots, n-1\} $ is removed from the sequence, the function $ f_u: [a,b] \to [0, \infty) $ obtained by the new sequence $ (P_i)_{i \in [n] \setminus \{ j \}} $ is also continuous, piecewise-linear and convex, and
+	\begin{equation}
+		f_u(x) \ge f(x) \qquad \forall x \in [a,b]
+	\end{equation}
+\end{lmm}
+
+\begin{proof}
+	By construction, $ \forall x \notin ( x_{j-1} , x_{j+1} ) $, we have $ f_u(x) = f(x) $.
+	
+	Again, by construction, $ \forall x \in ( x_{j-1} , x_{j+1} ), f_u(x) = (1-t) f(x_{j-1}) + t f(x_{j+1}) $, where $ t = \frac{ x - x_{j-1} }{ x_{j+1} - x_{j-1} } $.
+	
+	Now, we have:
+	\begin{alignat*}{9}
+		          && x_{j-1}  & <  \qquad x          && <  x_{j+1} \\
+		\implies  &&       0  & <  \quad x - x_{j-1} && <  x_{j+1} - x_{j-1} \\
+		\implies  &&       0  & <  \frac{ x - x_{j-1} }{ x_{j+1} - x_{j-1} } && <  1 \\
+		\implies  &&       0  & <  \qquad t          && <  1
+	\end{alignat*}
+	
+	$f$ is convex $\implies \forall t \in (0,1), \; f( (1-t) x_{j-1} + t x_{j+1} ) < (1-t) f(x_{j-1}) + t f(x_{j+1}) $.
+	
+	Thus, $ f_u(x) \ge f(x) \; \forall x \in [a,b]$.
+\end{proof}
+
+Refer to Figure \ref{fig:asian-upper-estimate} for a graphical representation of the above lemma.
+\begin{figure}
+	\centering
+	
+	\definecolor{qqzzqq}{rgb}{0.,0.6,0.}
+	\definecolor{xdxdff}{rgb}{0.49019607843137253,0.49019607843137253,1.}
+	\definecolor{ffqqqq}{rgb}{1.,0.,0.}
+	\definecolor{cqcqcq}{rgb}{0.7529411764705882,0.7529411764705882,0.7529411764705882}
+	\definecolor{qqqqff}{rgb}{0.,0.,1.}
+	\definecolor{zzttqq}{rgb}{0.6,0.2,0.}
+	\definecolor{eqeqeq}{rgb}{0.8784313725490196,0.8784313725490196,0.8784313725490196}
+	\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=0.7cm,y=0.7cm]
+	\draw [color=eqeqeq,dotted, xstep=1.4cm,ystep=1.4cm] (-1.,-1.) grid (17.,13.);
+	\draw[->,color=black] (0.,0.) -- (17.,0.);
+	\foreach \x in {,2.,4.,6.,8.,10.,12.,14.,16.}
+	\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+	\draw[color=black] (16.503014413215865,0.12712930521358398) node [anchor=south west] { A};
+	\draw[->,color=black] (0.,0.) -- (0.,13.);
+	\foreach \y in {,2.,4.,6.,8.,10.,12.}
+	\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt);
+	\draw[color=black] (0.158911605284918,12.306834374720047) node [anchor=west] { P};
+	\clip(-1.,-1.) rectangle (17.,13.);
+	\draw [line width=1.2pt,color=qqqqff] (8.,4.25)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (16.,12.)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (8.,4.25)-- (4.,2.5);
+	\draw [line width=1.2pt,color=qqqqff] (4.,2.5)-- (1.,2.);
+	\draw [line width=0.4pt,color=cqcqcq] (12.,8.)-- (12.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (8.,4.25)-- (8.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (4.,2.5)-- (4.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (1.,2.)-- (1.,0.);
+	\draw [line width=1.6pt,dash pattern=on 1pt off 2pt on 4pt off 4pt,color=ffqqqq] (4.,2.5)-- (12.,8.);
+	\draw [line width=0.4pt,color=cqcqcq] (16.,12.)-- (16.,0.);
+	\draw [line width=1.2pt,dotted,color=qqzzqq] (8.,5.25)-- (8.,4.25);
+	\begin{scriptsize}
+	\draw [fill=zzttqq] (16.,12.) circle (1.5pt);
+	\draw[color=zzttqq] (16.40766745004491,11.448711564528356) node {$S_5$};
+	\draw [fill=zzttqq] (12.,8.) circle (1.5pt);
+	\draw[color=zzttqq] (12.371312675807992,7.507703102907252) node {$S_4$};
+	\draw [fill=zzttqq] (8.,4.25) circle (1.5pt);
+	\draw[color=zzttqq] (8.36674022262806,3.693823946499732) node {$S_3$};
+	\draw [fill=zzttqq] (4.,2.5) circle (1.5pt);
+	\draw[color=zzttqq] (4.362167769448127,1.9775783261163484) node {$S_2$};
+	\draw[color=qqqqff] (9.669815385964387,5.441851893186511) node {$f$};
+	\draw[color=qqqqff] (6.300889353924126,3.0899597467352082) node {f};
+	\draw [fill=zzttqq] (1.,2.) circle (1.5pt);
+	\draw[color=zzttqq] (1.4064119111486517,1.7233197156891804) node {$S_1$};
+	\draw [fill=zzttqq] (16.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (16.185191202646024,-0.5014431255485392) node {$A_5$};
+	\draw [fill=zzttqq] (12.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (12.117054107352125,-0.5332254518519353) node {$A_4$};
+	\draw [fill=zzttqq] (8.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (8.080699333115207,-0.5967901044587272) node {$A_3$};
+	\draw [fill=zzttqq] (4.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (4.04434455887829,-0.6285724307621232) node {$A_2$};
+	\draw [fill=zzttqq] (1.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (1.056806379521832,-0.5967901044587272) node {$A_1$};
+	\draw[color=ffqqqq] (9.002386643767732,6.49066866119858) node {$f_u$};
+	\draw [fill=xdxdff] (8.,5.25) circle (1.5pt);
+	\draw[color=xdxdff] (7.476835233032519,5.4100695668831165) node {$R_3$};
+	\draw[color=qqzzqq] (8.36674022262806,4.837987693421987) node {$\varepsilon_3$};
+	\end{scriptsize}
+	\end{tikzpicture}
+	
+	\caption[Upper estimate]{Illustration of Lemma \ref{lmm:asian-upper-estimate} with $ j = 3 $}
+	\label{fig:asian-upper-estimate}
+\end{figure}
+
+
+
+\subsection{Lower estimates}
+\label{subsec:asian-lower-estimates}
+
+\begin{lmm}[Lower estimate]
+	\label{lmm:asian-lower-estimate}
+	Let $ f:[a,b] \to [0, \infty) $ be a continuous, piecewise-linear, convex function characterised by the singular points $ P = ( (x_i, y_i) )_{i \in [n]} $. Let $ l_{j} $ be the line segment joining points $ P_{j-1} $ and $ P_{j} $. Similarly, let $ l_{j+2} $ be the line segment joining points $ P_{j+1} $ and $ P_{j+2} $. Denote the intersection of the line segments $ l_{j} $ and $ l_{j+2} $ by $ \bar{P} = ( \bar{x}, \bar{y} ) $.
+	
+	Then the function $ f_d: [a,b] \to [0, \infty) $ characterised by $ (P_0, \dots, P_{j-1}, \bar{P}, P_{j+2}, \dots, P_n) $ is also continuous, piecewise-linear and convex, and
+	\begin{equation}
+		f_d(x) \le f(x) \qquad \forall x \in [a,b]
+	\end{equation}
+\end{lmm}
+
+\begin{proof}
+	First we show the convexity of $f_d$. We know that $f$ satisfies the property of increasing slopes, that is $ m_{i} \le m_{i+1} \le m_{i+2} $. Since $f_d$ is obtained from $f$ by removing the line segment $l_{j+1}$, for $f_d$ we have that $ m_{i} \le m_{i+2} $, which implies that the function $f_d$ is still convex.
+	
+	Secondly, to prove the inequality, we may look at the convex function $f$ as if it has been obtained by removing point $ \bar{P} $ from the convex function $f_d$. Then, if $ \bar{x} \in ( x_{j} , x_{j+1} ) $, we have, using Lemma \ref{lmm:asian-upper-estimate}, that $ f_d(x) \le f(x) \qquad \forall x \in [a,b] $.
+\end{proof}
+
+Refer to Figure \ref{fig:asian-lower-estimate} for a graphical representation of the above lemma.
+\begin{figure}
+	\centering
+	
+	\definecolor{qqwuqq}{rgb}{0.,0.39215686274509803,0.}
+	\definecolor{ffqqqq}{rgb}{1.,0.,0.}
+	\definecolor{ffqqff}{rgb}{1.,0.,1.}
+	\definecolor{cqcqcq}{rgb}{0.7529411764705882,0.7529411764705882,0.7529411764705882}
+	\definecolor{qqqqff}{rgb}{0.,0.,1.}
+	\definecolor{zzttqq}{rgb}{0.6,0.2,0.}
+	\definecolor{eqeqeq}{rgb}{0.8784313725490196,0.8784313725490196,0.8784313725490196}
+	\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=0.7cm,y=0.7cm]
+	\draw [color=eqeqeq,dotted, xstep=1.4cm,ystep=1.4cm] (-1.,-1.) grid (17.,13.);
+	\draw[->,color=black] (0.,0.) -- (17.,0.);
+	\foreach \x in {,2.,4.,6.,8.,10.,12.,14.,16.}
+	\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+	\draw[color=black] (16.63393630769859,0.10062658140528617) node [anchor=south west] { A};
+	\draw[->,color=black] (0.,0.) -- (0.,13.);
+	\foreach \y in {,2.,4.,6.,8.,10.,12.}
+	\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt);
+	\draw[color=black] (0.12578320593052933,12.290527463477607) node [anchor=west] { P};
+	\clip(-1.,-1.) rectangle (17.,13.);
+	\draw [line width=1.2pt,color=qqqqff] (6.,4.)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (16.,12.)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (6.,4.)-- (4.,3.);
+	\draw [line width=1.2pt,color=qqqqff] (4.,3.)-- (1.,2.);
+	\draw [line width=0.4pt,color=cqcqcq] (12.,8.)-- (12.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (6.,4.)-- (6.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (4.,3.)-- (4.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (1.,2.)-- (1.,0.);
+	\draw [line width=1.6pt,dash pattern=on 2pt off 2pt,color=ffqqqq] (6.,4.)-- (10.,6.);
+	\draw [line width=1.6pt,dash pattern=on 2pt off 2pt,color=ffqqqq] (12.,8.)-- (10.,6.);
+	\draw [line width=0.4pt,color=cqcqcq] (10.,6.)-- (10.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (16.,12.)-- (16.,0.);
+	\draw [line width=1.6pt,dotted] (10.00153846153846,6.667692307692308)-- (10.,6.);
+	\begin{scriptsize}
+	\draw [fill=zzttqq] (16.,12.) circle (1.5pt);
+	\draw[color=zzttqq] (16.231430048720895,11.611298038991926) node {$S_5$};
+	\draw [fill=zzttqq] (12.,8.) circle (1.5pt);
+	\draw[color=zzttqq] (12.281837382502273,7.460451556023871) node {$S_4$};
+	\draw [fill=zzttqq] (6.,4.) circle (1.5pt);
+	\draw[color=zzttqq] (6.294556780209077,3.636641462622997) node {$S_3$};
+	\draw [fill=zzttqq] (4.,3.) circle (1.5pt);
+	\draw[color=zzttqq] (4.256868844134502,2.6052190032188136) node {$S_2$};
+	\draw[color=qqqqff] (8.40771463984197,6.1523059977551515) node {$f$};
+	\draw [fill=zzttqq] (1.,2.) circle (1.5pt);
+	\draw[color=zzttqq] (1.3135418253601145,1.775049706625203) node {$S_1$};
+	\draw [fill=zzttqq] (16.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (16.030176919232048,-0.5142050203450577) node {$A_5$};
+	\draw [fill=zzttqq] (12.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (12.055427611827321,-0.48904837499373616) node {$A_4$};
+	\draw [fill=zzttqq] (6.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (6.068147009534124,-0.48904837499373616) node {$A_3$};
+	\draw [fill=zzttqq] (4.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (4.005302432273442,-0.5393616656963793) node {$A_2$};
+	\draw [fill=zzttqq] (1.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (1.011662131126844,-0.5393616656963793) node {$A_1$};
+	\draw [fill=zzttqq] (10.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (9.992583034566639,-0.5142050203450577) node {$\bar{A}$};
+	\draw [fill=ffqqff] (10.,6.) circle (1.5pt);
+	\draw[color=ffqqff] (10.29446272879991,5.422763282566826) node {$\bar{R}$};
+	\draw[color=ffqqqq] (8.307088075097546,4.642907276675858) node {$f_d$};
+	\draw[color=ffqqqq] (11.174945170313615,6.655438904781581) node {$f_d$};
+	\draw [fill=qqwuqq] (10.00153846153846,6.667692307692308) circle (1.5pt);
+	\draw[color=qqwuqq] (9.766173263891687,7.234041747861977) node {$\bar{S}$};
+	\draw[color=black] (10.319619369986015,6.3284025152144014) node {$\delta_4$};
+	\end{scriptsize}
+	\end{tikzpicture}
+	
+	\caption[Lower estimate]{Illustration of Lemma \ref{lmm:asian-lower-estimate} with $ j = 3 $}
+	\label{fig:asian-lower-estimate}
+\end{figure}
+
+
+The lemmas \ref{lmm:asian-upper-estimate} and \ref{lmm:asian-lower-estimate}, will be used later to reduce both the computational complexity and the memory requirement of the algorithm by removing points or edges, effectively simplifying the function.
+
+
+
+\subsection{Notations and conventions}
+\label{subsec:asian-notations}
+
+In this and subsequent sections, we shall use the convention that $ [n] = \{ 0, 1, 2, \dots, n \} $.
+
+Let the number of time steps be $n$. Let $i$ denote the highlighted time step, and $j$ represent the number of up movements. In this way, we may represent any node by $ N_{i,j} $. For example, in Figure \ref{fig:asian-paths}, the node denoted by $ S_0 u^2 d $ would be represented as $ N_{3,2} $.
+
+The price of the underlying at each node $ N_{i,j} $ is denoted by $ S_{i,j} $. Since there are $j$ up movements, there must be $ i-j $ down movements, and thus
+\begin{equation} \label{eq:asian-am-ij}
+	S_{i,j} = S_0 u^{j} d^{i-j} = S_0 u^{j} u^{-(i-j)} = S_0 u^{-i+2j} \qquad \forall i \in [n], \ \forall j \in [i]
+\end{equation}
+
+
+\begin{prp}
+	The number of paths to a node $ N_{i,j} $ is $ \binom{i}{j} $.
+\end{prp}
+
+\begin{proof}
+	At each point in a path, we may choose either an up movement or a down movement. To reach node $ N_{i,j} $, we much choose $j$ up movements among $i$ possibilities. The result follows immediately.
+\end{proof}
+
+
+We denote the number of singular points in a node $ N_{i,j} $ by $ L_{i,j} $, where $ L_{i,j} \in \left[ \binom{i}{j} \right] $. The $ l^\mathrm{th} $ average (in ascending order) ($ l \in \{ 1, \dots, L_{i,j} \} $) is denoted by $ A_{i,j}^l $, and the corresponding price by $ P_{i,j}^l $. Thus the singular points characterising the price function are $ ( ( A_{i,j}^l, P_{i,j}^l ) )_{l \in \{ 1, \dots, L_{i,j} \} } $.
+
+
+\begin{dfn}[singular average and singular price]
+	In the particular case of Asian options with arithmetic mean, each $ A_{i,j}^l $ is called a \emph{singular average} and each $ P_{i,j}^l $ is called a  \emph{singular price}.
+\end{dfn}
+
+
+We recall some basic definitions and derive simple results for the maximum and minimum attainable value of the averages on each node.
+
+
+\begin{dfn}[Path]
+	A path is a sequence $(j_i)_{i \in [n]}$ such that $j_{i+1} \in \{ j_i,j_i+1 \}$.
+\end{dfn}
+
+\begin{eg}
+	In Figure \ref{fig:asian-paths}, two paths are shown using red/thicker and blue/thick arrows. The other arrows are in grey/thin. The two paths have the same value at maturity, but give different averages.
+\end{eg}
+
+
+\begin{figure}[h]
+	% Recombining 4-step binomial tree for Cox-Ross-Rubinstein model
+	\begin{tikzpicture}
+		\matrix[column sep=10mm,row sep=1mm] (tree){
+			& & & & \node[term] (u4) {$S_0u^4$}; \\
+			& & & \node[nterm] (u3) {$S_0u^3$}; & \\
+			& & \node[nterm] (u2) {$\bm{S_0 u^2}$}; & & \node[term] (u3d) {$S_0u^3d$}; \\
+			& \node[nterm] (u) {$ \bm{S_0 u} $}; & & \node[nterm] (u2d) {$\bm{S_0 u^2 d}$};\\
+			\node[term] (s) {$ \bm{S_0} $}; & & \node[nterm] (ud) {$ \bm{S_0 u d} $}; & & \node[term] (u2d2) {$ \bm{S_0 u^2 d^2} $ }; \\
+			& \node[nterm] (d) {$ \bm{S_0 d} $}; & &	\node[nterm] (ud2) {$\bm{S_0 u d^2}$};\\
+			& & \node[nterm] (d2) {$S_0d^2$}; & & \node[term] (ud3) {$S_0ud^3$}; \\
+			& & & \node[nterm] (d3) {$S_0d^3$}; & \\
+			& & & & \node[term] (d4) {$S_0d^4$}; \\
+		};
+		% Lines out of s
+		\draw[->,red,ultra thick] (s) -- (u) node[midway,above,sloped] {$p_u$};
+		\draw[->,blue,thick] (s) -- (d) node[midway,below,sloped] {$p_d$};
+		% Lines out of u
+		\draw[->,red,ultra thick] (u) -- (u2) node[midway,above,sloped] {$p_u$};
+		\draw[->,gray] (u) -- (ud) node[midway,above,sloped] {$p_d$};
+		% Lines out of d
+		\draw[->,blue,thick] (d) -- (ud) node[midway,below,sloped] {$p_u$};
+		\draw[->,gray] (d) -- (d2) node[midway,below,sloped] {$p_d$};
+		% Lines out of u2
+		\draw[->,gray] (u2) -- (u3) node[midway,above,sloped] {$p_u$};
+		\draw[->,red,ultra thick] (u2) -- (u2d) node[midway,above,sloped] {$p_d$};
+		% Lines out of ud
+		\draw[->,gray] (ud) -- (u2d) node[midway,above,sloped] {$p_u$};
+		\draw[->,blue,thick] (ud) -- (ud2) node[midway,below,sloped] {$p_d$};
+		% Lines out of d2
+		\draw[->,gray] (d2) -- (ud2) node[midway,below,sloped] {$p_u$};
+		\draw[->,gray] (d2) -- (d3) node[midway,below,sloped] {$p_d$};
+		% Lines out of u3
+		\draw[->,gray] (u3) -- (u4) node[midway,above,sloped] {$p_u$};
+		\draw[->,gray] (u3) -- (u3d) node[midway,above,sloped] {$p_d$};
+		% Lines out of u2d
+		\draw[->,gray] (u2d) -- (u3d) node[midway,above,sloped] {$p_u$};
+		\draw[->,red,ultra thick] (u2d) -- (u2d2) node[midway,above,sloped] {$p_d$};
+		% Lines out of ud2
+		\draw[->,blue,thick] (ud2) -- (u2d2) node[midway,below,sloped] {$p_u$};
+		\draw[->,gray] (ud2) -- (ud3) node[midway,below,sloped] {$p_d$};
+		% Lines out of d3
+		\draw[->,gray] (d3) -- (ud3) node[midway,below,sloped] {$p_u$};
+		\draw[->,gray] (d3) -- (d4) node[midway,below,sloped] {$p_d$};
+	\end{tikzpicture}
+	\caption[Path diagram]{Different paths leading to a single destination}
+	\label{fig:asian-paths}
+\end{figure}
+
+
+\begin{thm}[Path inequality]
+	\label{thm:asian-up-dn-path}
+	Let there be two paths $\alpha$ and $\beta$, such that $S_{i,j_i^\alpha} \ge S_{i,j_i^\beta} \; \forall i$, where $ ( j_i^\alpha )_{i \in [n]} $ and $ ( j_i^\beta )_{i \in [n]} $ denote the paths as defined above. Denote the corresponding averages by $A^\alpha$ and $A^\beta$, respectively. Then $ A^\alpha \ge A^\beta $.
+\end{thm}
+
+\begin{proof}
+	Clearly if $S_{i,j_i^\alpha} = S_{i,j_i^\beta} \; \forall i$, then $A^\alpha = A^\beta$.
+	
+	We only need to show the result in the case of strict inequality at one time.
+	Let $ S_{i,j_i^\alpha} = S_{i,j_i^\beta} \; \forall i \in [n] \setminus \{l\} $, and $ S_{l,j_l^\alpha} > S_{l,j_l^\beta}$.
+	
+	Now, from equation \ref{eq:am}, we have:
+	\begin{align*}
+		(n+1) A_{n,j}^\alpha &= \sum_{i=0}^{l-1} S_{i,j_i} + S_{l,j_l^\alpha} + \sum_{i=l+1}^{n} S_{i,j_i} \\
+		(n+1) A_{n,j}^\beta &= \sum_{i=0}^{l-1} S_{i,j_i} + S_{l,j_l^\beta} + \sum_{i=l+1}^{n} S_{i,j_i} \\
+		\implies (n+1) \left(A_{n,j}^\alpha - A_{n,j}^\beta\right) &= S_{l,j_l^\alpha} - S_{l,j_l^\beta} \\
+												 &= S_{l-1,j_{l-1}} u_l - S_{l-1,j_{l-1}} d_l \\
+												 &= S_{l-1,j_{l-1}} (u_l - d_l) > 0 \qquad (u_l > d_l \text{ by definition}) \\
+		\implies A_{n,j}^\alpha > A_{n,j}^\beta
+	\end{align*}
+	
+	Iterating this procedure, we obtain the general case.
+\end{proof}
+
+
+\begin{rem}
+	The path $\alpha$ signifies a path \emph{above} and $\beta$ a path \emph{below} in the usual depiction of the binomial tree (the up movement shown above the down movement). Thus, a path which never goes below another cannot have a lower arithmetic mean than the other.
+\end{rem}
+
+
+\begin{crr}
+	\label{crr:asian-up-dn-path}
+	At each node $ N(i,j) $, the following hold:
+	\begin{enumerate}
+	\item The minimum average possible $ A_{i,j}^{\min} $ is attained by the path corresponding to the path corresponding to the path with $(i-j)$ down movements followed by $j$ up movements, and
+		\begin{equation}	\label{eq:asian-Amin}
+			A_{i,j}^{\min} = \frac{S_0}{i+1} \left( \frac{1 - d^{i-j+1}}{1-d} + d^{i-j} u \frac{1 - u^{j}}{1-u} \right)
+		\end{equation}
+	\item The maximum average possible $ A_{i,j}^{\max} $ is attained by the path corresponding to the path with $j$ up movements followed by $(i-j)$ down movements, and
+		\begin{equation} \label{eq:asian-Amax}
+			A_{i,j}^{\max} = \frac{S_0}{i+1} \left( \frac{1 - u^{j+1}}{1-u} + u^{j} d \frac{1 - d^{i-j-1}}{1-d} \right)
+		\end{equation}
+	\end{enumerate}
+\end{crr}
+
+\begin{proof}
+	We show the proof only for the case of the maximum, since the case of the minimum can be shown by using the exact same argument.
+	
+	From Theorem \ref{thm:asian-up-dn-path}, the result about path with the maximum average holds directly, since there cannot be a path above the one given by $j$ up movements followed by $(i-j)$ down movements.
+	
+	The subsequent formula may be derived as follows.
+	\begin{align*}
+		(i+1) A_{i,j}^{\max} &= \underbrace{ ( S_0 + S_0 u + S_0 u^2 + \dots + S_0 u^j ) }_\text{up movement} + \underbrace{ ( S_0 u^j d + S_0 u^j d^2 + \dots + S_0 u^j d^{i-j} ) }_\text{down movement} \\
+		&= S_0 ( (1 + u + u^2 + \dots + u^j ) + u^j d ( 1 + d + \dots + d^{i-j-1} ) ) \\
+		&= S_0 \left( \sum_{k=0}^j u^k + u^j d \sum_{k=0}^{i-j-1} d^k \right) \\
+		&= S_0 \left( \frac{1 - u^{j+1}}{1-u} + u^{j} d \frac{1 - d^{i-j-1}}{1-d} \right) \qquad \text{(Geometric series)} \\
+		\implies A_{i,j}^{\max} &= \frac{S_0}{i+1} \left( \frac{1 - u^{j+1}}{1-u} + u^{j} d \frac{1 - d^{i-j-1}}{1-d} \right)
+	\end{align*}
+\end{proof}
+
+Table \ref{tab:asian-notations} summarises the discussion above.
+
+\begin{table}[h]
+	\centering
+	\caption{Summary of notations}
+	\label{tab:asian-notations}
+%	\rowcolors{1}{Burlywood1}{}
+	\begin{tabular}{cccl}
+		\toprule
+		Symbol & Range & Formula & Description \\
+		\midrule
+		$ i $ & $ [ n ] $ & & highlighted time step \\
+		$ j $ & $ [ i ] $ & & number of up movements \\
+		$ N_{i,j} $ & & & node fixed by $ (i,j) $ \\
+		$ S_{i,j} $ & $ [0, \infty) $ & Eq \ref{eq:asian-am-ij} & value of the underlying at node $ N_{i,j} $ \\
+		$ L_{i,j} $ & $ \left[ \binom{i}{j} \right] $ & & number of singular points in node $ N_{i,j} $ \\
+		$ l $ & $ \{ 1, \dots, L \} $ & & index for points in ascending order of averages \\
+		$ A_{i,j}^{\min} $ & $ [0, \infty) $ & Eq \ref{eq:asian-Amin} & minimum average attainable for node $ N_{i,j} $ \\
+		$ A_{i,j}^{\max} $ & $ [0, \infty) $ & Eq \ref{eq:asian-Amax} & maximum average attainable for node $ N_{i,j} $ \\
+		$ A_{i,j}^l $ & $ \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $ & Eq \ref{eq:am} & $ l^\mathrm{th} $ singular average of node $ N_{i,j} $ \\
+		$ P_{i,j}^l $ & & & price corresponding to the average $ A_{i,j}^l $ \\
+		$ (A_{i,j}^l, P_{i,j}^l) $ & & & $ l^\mathrm{th} $ singular point of node $ N_{i,j} $ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+
+
+\section{Fixed-strike Asian options of the European type}
+\label{sec:fixed-strike-eu}
+
+We start with the simplest case. For this type of option, the pay-off at maturity is dependent only on (some type of) average $ A_T $ at maturity $ T $ and a fixed constant $ K $, and is given by the following function.
+\begin{equation}
+	\label{eq:asian-price-eu-asian-am}
+	P_T = (A_T - K)_+
+\end{equation}
+
+In each node of the binomial tree, we have a set of possible averages depending on the paths which may be taken to arrive at the node, and prices corresponding to each of those averages. We shall show that these points satisfy condition \ref{eq:asian-conditions}, so the price function is piecewise-linear, convex and continuous, and is completely characterised by these points. In essence, we consider not only averages that are effectively achievable but all the possible averages between the minimum and maximum realized at that point. This gives us the continuous representation of prices. The intuitive idea is that as the time step is reduced to zero, this function converges to the price function of the continuous time model.
+
+We start with the prices at maturity, and proceed using backward iteration. The exact details are explained below.
+
+
+\subsubsection*{At maturity ($ i = n $)}
+
+From equations \ref{eq:asian-Amin} and \ref{eq:asian-Amax}, putting $i = n$, we get
+\begin{align*}
+	A_{n,j}^{\min} &= \frac{S_0}{n+1} \left( \frac{1 - d^{n-j+1}}{1-d} + d^{n-j} u \frac{1 - u^{j}}{1-u} \right) \\
+	A_{n,j}^{\max} &= \frac{S_0}{n+1} \left( \frac{1 - u^{j+1}}{1-u} + u^{j} d \frac{1 - d^{n-j-1}}{1-d} \right)
+\end{align*}
+
+In defining the price function, we note that three cases may arise.
+\begin{itemize}
+\item $ j \in \{ 0, n \} $ \\
+	In this case, there can be only one path to these nodes, so there is only one average, implying one price and one singular point.
+	
+\item $ j \notin \{ 0, n \} $ and $ K \in ( A_{n,j}^{\min}, A_{n,j}^{\max} ) $ \\	
+	In this case, the price function is characterised by three singular points ($ L_{i,j} = 3 $), $ ( A_{n,j}^l , P_{n,j}^l )_{l \in \{ 1, 2, 3 \} } $, since we need to compare the averages with the fixed strike price $ K $. The points are as follows.  \\
+	\begin{equation}
+		\label{eq:asian-price-maturity-kin}
+		\begin{aligned}
+			( A_{n,j}^1 , P_{n,j}^1 ) &= ( A_{n,j}^{\min} , 0 ) \\
+			( A_{n,j}^2 , P_{n,j}^2 ) &= ( K , 0 ) \\
+			( A_{n,j}^3 , P_{n,j}^3 ) &= ( A_{n,j}^{\max} , A_{n,j}^{\max} - K ) \\
+		\end{aligned}
+	\end{equation} \label{eq:asian-price-maturity-kout}
+	
+\item $ j \notin \{ 0, n \} $ and $ K \notin ( A_{n,j}^{\min}, A_{n,j}^{\max} ) $ \\
+	In this case, the price function is characterised by only two singular points ($ L_{i,j} = 2 $), $ ( A_{n,j}^l , P_{n,j}^l )_{l \in \{ 1, 2 \} } $, which are as follows. \\
+	\begin{equation}
+		\label{eq:asian-price-maturity-knotin}
+		\begin{aligned}
+			( A_{n,j}^1 , P_{n,j}^1 ) &= ( A_{n,j}^{\min} , ( A_{n,j}^{\min} - K )_+ ) \\
+			( A_{n,j}^2 , P_{n,j}^2 ) &= ( A_{n,j}^{\max} , ( A_{n,j}^{\max} - K )_+ ) \\
+		\end{aligned}
+	\end{equation}
+\end{itemize}
+
+\begin{lmm}[Price function at maturity ($ i < n $)]
+	\label{lmm:asian-pr-maturity}
+	At each node at maturity, the price function $ { v_{n,j}: \left[ A_{n,j}^{\min}, A_{n,j}^{\max} \right] \to \left[ ( A_{n,j}^{\min} - K )_+ , ( A_{n,j}^{\max} - K )_+ \right] } $ defined as $ v_{n,j}(A) = (A - K)_+ $ is continuous, piecewise-linear and convex.
+\end{lmm}
+\begin{proof}
+	The singular points satisfy the conditions \ref{eq:asian-conditions}. So for each $ A \in \left[ A_{n,j}^{\min}, A_{n,j}^{\max} \right] $, the price function ${ v_{n,j}(A) }$ characterised by the singular points is continuous, piecewise-linear and convex by remark \ref{rem:asian-char}.
+\end{proof}
+
+
+
+\subsubsection*{Before maturity ($ i < n $)}
+
+\begin{lmm}[Price function at any node]
+	\label{lmm:asian-dsc-expt}
+	At any node $ N_{i,j} $, the price function $ v_{i,j}: \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] \to [0, \infty) $ is continuous, piecewise-linear and convex.
+\end{lmm}
+
+\begin{proof}
+	We shall prove this using backward induction, the base case at maturity being true by virtue of Lemma \ref{lmm:asian-pr-maturity}.
+	We now consider step $ i = n-1 $. Let $A_u$ and $A_d$ respectively represent the averages after an up and down movement corresponding to an average $A$. From equation \ref{eq:am}, we get
+	\begin{subequations}
+		\label{eq:asian-av-up-dn}
+		\begin{align}
+			A_u &= \frac{ (i+1) A + S_0 u^{-i+2j+1} }{ i+2 } \\
+			A_d &= \frac{ (i+1) A + S_0 u^{-i+2j-1} }{ i+2 }
+		\end{align}
+	\end{subequations}
+	Since the options is of the European type, applying the no-arbitrage condition, the price function $ v_{i,j}: \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] \to [0, \infty) $ is obtained by considering the discounted expectation value.
+	\begin{equation}
+		\label{eq:asian-dsc-expt}
+		v_{i,j}(A) = \frac{1}{R} \left[ p v_{i+1,j+1}(A_u) + (1 - p) v_{i+1,j}(A_d) \right]
+	\end{equation}
+	From equation \ref{eq:asian-av-up-dn}, we get that $A_u$ and $A_d$ are linear functions of $A$. Thus, $ v_{i+1,j+1}(A_u) = v_{n,j+1}(A_u)$ and $ v_{i+1,j}(A_d) = v_{n,j}(A_d) $ are piecewise-linear convex continuous functions of $A_u$ and $A_d$ respectively. Thus, $ v_{i+1,j+1} $ and $ v_{i+1,j} $ may be seen as a linear combination of the above functions, and is thus piecewise-linear, convex and continuous itself. Again, from equation \ref{eq:asian-dsc-expt}, we get that $v_{i,j}$ is a convex combination of such functions, and the proof is complete.
+	
+	We showed that if at time $ i+1 $, if the price function is continuous, piecewise-linear and convex, so is it for time $ i $. Since this is true for $ i+1 = n $, the same logic applied iteratively proves that the functions retain the characteristics for all $ i \in [n] $.
+\end{proof}
+
+
+\begin{rem}
+	From Lemma \ref{lmm:asian-dsc-expt}, we see that the price function may be characterised by singular points.
+\end{rem}
+
+
+
+\subsection{Evaluation of singular points}
+\label{subsec:asian-eu-eval}
+
+The evaluation of singular points for any node $ N_{i,j} $ is done by the following algorithm, which works in a backward fashion in time, starting from the maturity.
+
+We note that for the only influencing nodes for the node $ N_{i,j} $ are $ N_{i+1,j+1} $ and $ N_{i+1,j} $. Thus we need to calculate the price of the option for each singular average belonging to either of these nodes.
+
+
+\paragraph{Up movement}
+
+First we take each singular average $ A_{i+1,j}^l $ belonging to $ N_{i+1,j} $ and project it to $ N_{i,j} $ via the following relation.
+\begin{equation}
+	\label{eq:asian-proj-up}
+	B^l = \frac{ ( i+2) A_{i+1,j}^l - S_0 u^{-i+2j-1} }{ i+1 }
+\end{equation}
+Thus, $ B^l $ is that average which after a down movement of the asset gives us the average $ A_{i+1,j}^l $.
+
+Next, we note that $ B^l $ is an increasing function of $ l $, since a higher average at time step $ i $ would yield a higher average at time $ i+1 $. This in turn implies the following:
+\begin{itemize}
+\item $ B^{L_{i+1,j}} = A_{i+i,j}^{\max} \; \forall j $
+\item $ B^1 \notin \left[ A_{i+i,j}^{\min}, A_{i+i,j}^{\max} \right] \ \forall j \in \{1, \dots, i-1 \} $
+\end{itemize}
+Each $ B^l \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $ becomes the singular average of $ N_{i,j} $.
+
+In this way, we have determined the first coordinate of the singular points. We need to determine the second coordinate, or the prices $ v_{i,j}(B^l) $, $ \forall B^l \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $, in order to determine the singular points completely. The idea is to calculate the discounted expected value of the price corresponding to each average $ B^l $ at $ N_{i,j} $. In order to be able to do this, we need the prices corresponding to the average projected to the node $ N_{i+1,j+1} $.
+
+We consider an up movement of the underlying asset from node $ N_{i,j} $. In this case, $ B^l $ transforms into the average $ B^l_u = \left( (i+1) B^l + S_0 u^{-i+2j+1} \right) / ( i+2 ) $. Clearly, this average cannot belong to the set of averages associated with the node $ N_{i+1,j+1} $. Thus, we need to find the index $s$ such that $ B^l_u \in \left[ A_{i+1,j+1}^{s} , A_{i+1,j+1}^{s+1} \right] $. In the intervals the price function is linear, and thus we have
+\begin{equation}
+	\label{eq:asian-up-lint}
+	v_{i+1,j+1} \left( B^l_u \right) = \frac{ P_{i+1,j+1}^{s+1} - P_{i+1,j+1}^{s} }{ A_{i+1,j+1}^{s+1} - A_{i+1,j+1}^{s} } \left( B^l_u - A_{i+1,j+1}^{s} \right) + P_{i+1,j+1}^{s} .
+\end{equation}
+
+We follow this up by calculating the price associated with the singular value $ B^l $ by evaluating the discounted expectation value.
+\begin{equation}
+	\label{eq:asian-up-pr}
+	v_{i,j}( B^l ) = \frac{1}{R} \left[ p v_{i+1,j+1} \left( B^l_u \right) + (1 - p) v_{i+1,j} \left( A_{i+1,j}^l \right) \right] .
+\end{equation}
+
+Figure \ref{fig:asian-2tr-up} depicts the idea.
+\begin{figure}[h]
+	\begin{tikzpicture}
+	\matrix (tree) [column sep=25mm, row sep=1mm]{
+		\node[header] (t0) {$ t = i $};  &  \node[header] (t1) {$ t = i+1 $}; \\
+		&  \node[term] (u) {$ B^l_u $}; \\
+		\node[term] (s) {$ B^l $};  &  \\
+		&  \node[term] (d) {$ A_{i+1,j}^l $}; \\
+	};
+	\draw[->] (s) -- (u) node[midway,above,sloped] {Step 2};
+	\draw[->] (d) -- (s) node[midway,below,sloped] {Step 1};
+	\end{tikzpicture}
+	
+	\caption{Up movement}
+	\label{fig:asian-2tr-up}
+\end{figure}
+
+
+
+\paragraph{Down movement}
+
+We now proceed to formulate the theory for the downward movement in the exact same fashion. Define the new average $ C^l $ at the node $ N_{i,j} $ via the relation
+\begin{equation}
+	\label{eq:asian-proj-dn}
+	C^l = \frac{ ( i+2) A_{i+1,j+1}^l - S_0 u^{-i+2j+1} }{ i+1 }
+\end{equation}
+
+Again, we note that
+\begin{itemize}
+\item $ C^1 = A_{i,j}^{\min} \ \forall j $
+\item $ C^{L_{i+1,j+1}} \notin \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] \ \forall j \in \{1, \dots, i-1 \} $
+\item $ C^l_d = \left( (i+1) C^l + S_0 u^{-i+2j-1} \right) / ( i+2 ) $
+\end{itemize}
+Each $ C^l \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $ becomes the singular average of $ N_{i,j} $.
+
+For $ v_{i,j}( C^l ) $, $ \forall C^l \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $, we now have the following.
+\begin{equation}
+	\label{eq:asian-dn-lint}
+	v_{i+1,j+1} \left( C^l_d \right) = \frac{ P_{i+1,j}^{s+1} - P_{i+1,j}^{s} }{ A_{i+1,j}^{s+1} - A_{i+1,j}^{s} } \left( C^l_d - A_{i+1,j}^{s} \right) + P_{i+1,j}^{s}
+\end{equation}
+
+\begin{equation}
+	\label{eq:asian-dn-pr}
+	v_{i,j}( C^l ) = \frac{1}{R} \left[ p v_{i+1,j+1} \left( A_{i+1,j+1}^l \right) + (1 - p) v_{i+1,j} \left( C^l_d \right) \right]
+\end{equation}
+
+Figure \ref{fig:asian-2tr-dn} depicts the idea.
+\begin{figure}[h]
+	\begin{tikzpicture}
+	\matrix (tree) [column sep=25mm, row sep=1mm]{
+		\node[header] (t0) {$ t = i $};  &  \node[header] (t1) {$ t = i+1 $}; \\
+		&  \node[term] (u) {$ A_{i+1,j+1}^l $}; \\
+		\node[term] (s) {$ C^l $};  &  \\
+		&  \node[term] (d) {$ C^l_d $}; \\
+	};
+	\draw[->] (u) -- (s) node[midway,above,sloped] {Step 1};
+	\draw[->] (s) -- (d) node[midway,below,sloped] {Step 2};
+	\end{tikzpicture}
+	
+	\caption{Down movement}
+	\label{fig:asian-2tr-dn}
+\end{figure}
+
+
+\paragraph{Aggregation}
+
+Now we have the singular points for both up and down movements. We sort these points in ascending order of the first coordinate, i.e. the averages $ B^l $ and $ C^l $ that belong to $ \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] $. These is an exhaustive list of all the singular points in the node (by construction). We note that $ L_{i,j} \le L_{i+1,j} + L_{i+1,j+1} - 2 $.
+
+This procedure is applied to all nodes, starting from maturity and proceeding backwards. At the `edge' nodes $ N_{i,0} $ and $ N_{i,i} $, there is only one singular point whose price is given as follows
+\begin{subequations}
+	\label{eq:asian-terminal-nodes}
+	\begin{align}
+		P_{i,0}^1 &= \frac{1}{R} \left[ p P_{i+1,0}^1 + (1 - p) P_{i+1,1}^1 \right] \\
+		P_{i,i}^1 &= \frac{1}{R} \left[ p P_{i+1,i+1}^1 + (1 - p) P_{i+1,i}^{L_{i+1,i}} \right]
+	\end{align}
+\end{subequations}
+
+Thus we have a complete description of the price function at each node of the binomial tree. The price $ P_{0,0}^1 $ is exactly the binomial price relative to the tree with $n$ steps of a fixed-strike European call option.
+
+
+\section{Fixed-strike Asian options of the American type}
+\label{sec:fixed-strike-am}
+
+We now consider the American case. At maturity we have the same situation as in the European case. The price function is $ v_{n,j} (A) = (A - K)_+ $ for $ A \in [ A_{n,j}^{\min}, A_{n,j}^{\max} ] $, and it is characterized by the same singular points.
+
+Consider the step $ i = n - 1 $. At the node $ N_{i,j} $, we first compute, by using the procedure described in the previous section (European case), the singular points associated with this node, thus obtaining the continuation value function $ v_{n,j}^c (A) $ (note that this is nothing but $ v_{n,j} (A) $ in the European case). But now, we must also account for exercise rights at this time. Thus, we have
+\begin{equation}
+	v_{n,j} (A)  =  \max \{ \underbrace{A - K}_{\text{exercise}}, \underbrace{v_{n,j}^c (A)}_{\text{hold}} \} .
+\end{equation}
+
+Note that $ v_{i,j} (A) $ is still a piecewise-linear convex function, since maximum is a convex function, and the composition of two convex function is convex. For this reason, we can again characterize it by its singular points. In order to compute the singular points associated with the American case, we first remark that the slopes characterizing the piecewise-linear convex function $ v_{i,j}^c (A) $ are all smaller than 1.
+
+
+\begin{prp}[boundedness of slope]
+	The slopes characterizing the piecewise-linear convex function $ v_{i,j}^c (A) $ are all smaller than $ 1, \  \forall A \in \left(  A_{i,j}^{l}, A_{i,j}^{l+1}  \right)  \  \forall l \in \{ 1, 2, \dots, L_{i,j} \} $.
+\end{prp}
+
+Of course, at the singular points, due to piecewise linearity, the function is not differentiable and thus admits no slope.
+
+\begin{proof}
+	First, note that differentiating Equations \ref{eq:asian-av-up-dn} with respect to $ A $, we get
+	\begin{equation*}
+		\od{A_u}{A} = \od{A_d}{A} = \frac{i+1}{1+2} < 1 .
+	\end{equation*}
+	
+	Now, we differentiate $ v_{i,j}^c $ with respect to $ A $ in Equation \ref{eq:asian-dsc-expt} to get
+	\begin{align*}
+		\od{v_{i,j}^c}{A}  &=  \frac{1}{R} \left(  p \od{v_{i+1,j+1}}{A} + (1 - p) \od{v_{i+1,j}}{A}  \right)  \\
+		&=  \frac{1}{R} \left(  p \od{v_{i+1,j+1}}{A_u} \od{A_u}{A} + (1 - p) \od{v_{i+1,j}}{A_d} \od{A_d}{A}  \right)  \\
+		&= \frac{1}{R} \frac{i+1}{1+2} \left(  p \od{v_{i+1,j+1}}{A_u} + (1 - p) \od{v_{i+1,j}}{A_d}  \right)
+	\end{align*}
+	
+	Now, let $ i = n - 1 $. Then $ v_{i+1, \cdot} = v_{n, \cdot} $. Clearly, from Section \ref{sec:fixed-strike-eu} (the price function at maturity), in each of the three cases, the price function can have a slope of either 0 or 1. In the above equation, considering $ r > 0 $, we have $ R > 1 $, and consequently, $ R^{-1} < 1 $. Also, $ p, 1-p \in [0,1] $. Putting all the inequalities in the last expression of $ \od{v_{i,j}^c}{A} $, we obtain $ \od{v_{n-1,j}^c}{A} < 1 $.
+	
+	Clearly, the slope in any previous time $ i < n - 1 $ can never be equal to unity by the exact same logic. The proof is complete by backward induction.
+\end{proof}
+
+
+Hence there are two possible cases, as follows.
+
+\begin{enumerate}
+	\item $ A_{i,j}^{\max} - K  \le  v_{i,j}^c ( A_{i,j}^{\max} ) $. This implies that $ v_{i,j} \equiv v_{i,j}^c $. The singular points remain the same.
+	\item $ A_{i,j}^{\max} - K  <  v_{i,j}^c ( A_{i,j}^{\max} ) $. This case has two subcases, as follows.
+	\begin{enumerate}
+		\item $ A_{i,j}^{\min} - K  \ge  v_{i,j}^c ( A_{i,j}^{\min} ) $. This implies that $ v_{i,j} (A) = (A - K), \  \forall A \in [ A_{i,j}^{\min}, A_{i,j}^{\max} ] $, so the only singular points points are $ \left(  A_{i,j}^{\min}, A_{i,j}^{\min} - K  \right) $ and $ \left(  A_{i,j}^{\max}, A_{i,j}^{\max} - K  \right) $.
+		\item $ A_{i,j}^{\min} - K  <  v_{i,j}^c ( A_{i,j}^{\min} ) $. This means that there is a unique average $ \bar{A} $ at which point the continuation value equals the early exercise. Let $ j_0 $ be the largest index such that $ A_{i,j}^{j_0} < \bar{A} $. The new set of singular points becomes (see Figure \ref{fig:asian-american-estimate} for a graphical representation)
+		\begin{equation*}
+			\left\lbrace  \left( A_{i,j}^{1}, P_{i,j}^{1} \right), \left( A_{i,j}^{j_0}, P_{i,j}^{j_0} \right), \left( \bar{A}, \bar{A} - K \right), \left( A_{i,j}^{\max}, A_{i,j}^{\max} - K \right)  \right\rbrace
+		\end{equation*}
+	\end{enumerate}
+\end{enumerate}
+
+We can repeat the same procedure iteratively for $ i = n-2, \dots, 0 $. At the final step, we get only one singular point, which gives us $ P_{0,0}^1 $, the exact American binomial price relative to the tree with $ n $ steps.
+
+\begin{figure}[h]
+	\centering
+	
+	\definecolor{aqaqaq}{rgb}{0.6274509803921569,0.6274509803921569,0.6274509803921569}
+	\definecolor{ffqqqq}{rgb}{1.,0.,0.}
+	\definecolor{xdxdff}{rgb}{0.49019607843137253,0.49019607843137253,1.}
+	\definecolor{cqcqcq}{rgb}{0.7529411764705882,0.7529411764705882,0.7529411764705882}
+	\definecolor{qqqqff}{rgb}{0.,0.,1.}
+	\definecolor{zzttqq}{rgb}{0.6,0.2,0.}
+	\definecolor{eqeqeq}{rgb}{0.8784313725490196,0.8784313725490196,0.8784313725490196}
+	\begin{tikzpicture}[line cap=round,line join=round,>=triangle 45,x=0.7cm,y=0.7cm]
+	\draw [color=eqeqeq,dotted, xstep=1.4cm,ystep=1.4cm] (-0.5,-0.5) grid (17.,14.5);
+	\draw[->,color=black] (0.,0.) -- (17.,0.);
+	\foreach \x in {,2.,4.,6.,8.,10.,12.,14.,16.}
+	\draw[shift={(\x,0)},color=black] (0pt,2pt) -- (0pt,-2pt);
+	\draw[color=black] (16.810032796001327,0.10062658140528617) node [anchor=south west] { A};
+	\draw[->,color=black] (0.,0.) -- (0.,14.5);
+	\foreach \y in {,2.,4.,6.,8.,10.,12.,14.}
+	\draw[shift={(0,\y)},color=black] (2pt,0pt) -- (-2pt,0pt);
+	\draw[color=black] (0.1257832059305293,14.101805928772759) node [anchor=west] { P};
+	\clip(-0.5,-0.5) rectangle (17.,14.5);
+	\draw [line width=1.2pt,color=qqqqff] (6.,4.)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (16.,12.)-- (12.,8.);
+	\draw [line width=1.2pt,color=qqqqff] (6.,4.)-- (4.,3.);
+	\draw [line width=1.2pt,color=qqqqff] (4.,3.)-- (1.,2.);
+	\draw [line width=0.4pt,color=cqcqcq] (12.,8.)-- (12.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (6.,4.)-- (6.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (4.,3.)-- (4.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (1.,2.)-- (1.,0.);
+	\draw [line width=0.4pt,color=cqcqcq] (16.,12.)-- (16.,0.);
+	\draw [line width=1.6pt,dash pattern=on 1pt off 2pt on 4pt off 4pt,color=ffqqqq] (8.003076923076923,5.335384615384616)-- (16.,13.33);
+	\draw [dash pattern=on 1pt off 2pt on 4pt off 4pt,color=ffqqqq] (2.66,0.)-- (8.003076923076923,5.335384615384616);
+	\draw [color=aqaqaq] (8.003076923076923,5.335384615384616)-- (8.,0.);
+	\draw [color=aqaqaq] (8.003076923076923,5.335384615384616)-- (0.,5.34);
+	\begin{scriptsize}
+	\draw [fill=zzttqq] (16.,12.) circle (1.5pt);
+	\draw[color=zzttqq] (16.23143004872089,11.611298038991926) node {$S_5$};
+	\draw [fill=zzttqq] (12.,8.) circle (1.5pt);
+	\draw[color=zzttqq] (12.281837382502271,7.460451556023871) node {$S_4$};
+	\draw [fill=zzttqq] (6.,4.) circle (1.5pt);
+	\draw[color=zzttqq] (6.294556780209076,3.636641462622997) node {$S_3$};
+	\draw [fill=zzttqq] (4.,3.) circle (1.5pt);
+	\draw[color=zzttqq] (4.256868844134502,2.6052190032188136) node {$S_2$};
+	\draw[color=qqqqff] (9.891956469822214,6.252932579160437) node {$f$};
+	\draw [fill=zzttqq] (1.,2.) circle (1.5pt);
+	\draw[color=zzttqq] (1.3135418253601157,1.775049706625203) node {$S_1$};
+	\draw [fill=zzttqq] (16.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (16.206273407534784,-0.3381085028858069) node {$A_5$};
+	\draw [fill=zzttqq] (12.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (12.23152410013006,-0.31295185753448534) node {$A_4$};
+	\draw [fill=zzttqq] (6.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (6.219086856650759,-0.3381085028858069) node {$A_3$};
+	\draw [fill=zzttqq] (4.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (4.105928997017866,-0.3381085028858069) node {$A_2$};
+	\draw [fill=zzttqq] (1.,0.) circle (1.5pt);
+	\draw[color=zzttqq] (1.087132054685163,-0.3381085028858069) node {$A_1$};
+	\draw [fill=xdxdff] (8.003076923076923,5.335384615384616) circle (1.5pt);
+	\draw[color=xdxdff] (7.678172045444898,5.850426253539292) node {$S_{34}$};
+	\draw [fill=qqqqff] (16.,13.33) circle (1.5pt);
+	\draw[color=qqqqff] (16.306899972279208,13.749612893854257) node {$S_5'$};
+	\draw[color=ffqqqq] (11.829017841152366,10.177369253966598) node {$f_{bar}$};
+	\draw [fill=qqqqff] (2.66,0.) circle (1.5pt);
+	\draw[color=qqqqff] (2.6216871670376203,-0.3129518575344853) node {$K$};
+	\draw [fill=qqqqff] (8.,0.) circle (1.5pt);
+	\draw[color=qqqqff] (8.28193143391144,-0.31295185753448534) node {$\bar{A}$};
+	\draw [fill=xdxdff] (0.,5.34) circle (1.5pt);
+	\draw[color=xdxdff] (0.030553124868716808,5.020256956945682) node {$\bar{P}$};
+	\end{scriptsize}
+	\end{tikzpicture}
+	
+	\caption[Estimate in the American case]{American case: $ \bar{A} $ inserted, $ A_4 $ removed}
+	\label{fig:asian-american-estimate}
+\end{figure}
+
+\begin{rem}[computational complexity -- European vs. American]
+	If we use approximations (as explained in the next section), the number of singular points in the American case can never be greater than the European case (even though right now we cannot determine the theoretical complexity of even the European case). Thus, the American procedure cannot be slower than the European one. In case we also take approximations into account, the American case is expected to be faster heuristically, but cannot be proved in general. Figure \ref{fig:asian-american-estimate} illustrates this. $ A_{\text{bar}} $ is inserted, and all points except for the last, is removed. Thus, if the number of points after $ A_{\text{bar}} $ is huge, this would remove all those points. This is not possible in the European case.
+\end{rem}
+
+\begin{rem}[put]
+	For an Asian put, the exact same procedure has to be followed.
+\end{rem}
+
+\begin{rem}[floating]
+	In this case, we modify the procedure as follows: at maturity the singular points depend not on the strike $ K $ but rather on the underlying value at each node $ S_{i,j} $. Therefore the new singular points are obtained by replacing $ K $ by $ S_{i,j} $. The backward procedure is the same as before, just properly taking into account the new intrinsic values.
+\end{rem}
+
+\begin{rem}[lookback options]
+	Lookback options can also be similarly priced. In fact, in this case the algorithm admits several simplifications. We shall not study lookback options in this thesis. The interested reader should refer to \cite[Section 4]{Gaudenzi2010}.
+\end{rem}
+
+
+\section{Approximation}
+\label{sec:asian-approx}
+The above sections introduced the singular points method, a procedure to evaluate the exact binomial price of an Asian option. Since for any node $ N_{i,j} $, we have that $ L_{i,j} \le L_{i+1,j} + L_{i+1,j+1} - 2 $, the resulting algorithm has exponential complexity, same as that of the binomial method.
+
+Where this method shines, though, is its ability to use approximations to drastically reduce the order of complexity from exponential to polynomial time. The singular points method can be used to obtain upper and lower bounds of the binomial price at a fraction of the computational cost. Moreover, we can specify \emph{a priori} bounds on the error. We shall see that these are just simple consequences of Lemmas \ref{lmm:asian-upper-estimate} and \ref{lmm:asian-lower-estimate}.
+
+\subsection{Upper bound}
+\label{subsec:asian-ub}
+In order to obtain an upper bound, we remove selected points from each node. That this is a upper estimate of the exact binomial price is guaranteed by Lemma \ref{lmm:asian-upper-estimate}.
+
+Removal of points may be done on the basis of various criteria. One such method is as follows.
+
+Consider the set of singular points $ C $ associated with the node $ N_{i,j} $ and the corresponding price value function $ v_{i,j} (A) $. Let $ v_{i,j}^u (A) $ be the price value function obtained by removing a point $ \left( A_{i,j}^{l}, P_{i,j}^{l} \right) $ from $ C $. We have
+\begin{equation}
+	v_{i,j}^u (A) - v_{i,j} (A)  \le  \epsilon_l  \qquad  \forall A \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right],
+\end{equation}
+where
+\begin{equation}
+	\epsilon_l  =  v_{i,j}^u \left( A_{i,j}^{l} \right) - v_{i,j} \left( A_{i,j}^{l} \right)  =  \frac{ P_{i,j}^{l+1} - P_{i,j}^{l-1} }{ A_{i,j}^{l+1} - A_{i,j}^{l-1} } \left( A_{i,j}^{l} - A_{i,j}^{l-1} \right) + \left( P_{i,j}^{l-1} - P_{i,j}^{l} \right) .
+\end{equation}
+
+Therefore, given any tolerance $ h > 0 $, we may remove a point $ \left( A_{i,j}^{l}, P_{i,j}^{l} \right) $ only if $ \epsilon_l < h $. Repeating this procedure sequentially at each node of the tree, while avoiding the elimination of two consecutive singular points, we can conclude that the upper estimate thus obtained differs from the exact binomial value by at most $ n h $.
+
+
+\subsection{Lower bound}
+\label{subsec:asian-lb}
+The computational procedure is quite similar to the procedure of approximation using upper bounds. The theoretical foundation of this part is given by Lemma \ref{lmm:asian-lower-estimate}. If we remove the points $ \left( A_{i,j}^{l-1}, P_{i,j}^{l-1} \right) $ and $ \left( A_{i,j}^{l}, P_{i,j}^{l} \right) $, and add the point $ (\bar{x}, \bar{y} ) $ as described in Lemma \ref{lmm:asian-lower-estimate}, the new function is never greater than the original one, and the differences between the values at any point is bounded over by $ \delta_l $, that is
+\begin{equation}
+	v_{i,j} (A) - v_{i,j}^d (A)  \le  \delta_l  \qquad  \forall A \in \left[ A_{i,j}^{\min}, A_{i,j}^{\max} \right] ,
+\end{equation}
+where
+\begin{equation}
+	\delta_l  =  v_{i,j} (A) - v_{i,j}^d (A)  =  \frac{ P_{i,j}^{l} - P_{i,j}^{l-1} }{ A_{i,j}^{l} - A_{i,j}^{l-1} } \left( \bar{x} - A_{i,j}^{l-1} \right) + \left( P_{i,j}^{l-1} - \bar{y} \right) .
+\end{equation}
+
+Again, we allow for the operation only if $ \delta_l < h $.
+
+An implementation methodology is as follows. At each node $ N_{ij} $, we consider the starting four points $ \left( A_{i,j}^1, P_{i,j}^1 \right) $, $ \left( A_{i,j}^2, P_{i,j}^2 \right) $, $ \left( A_{i,j}^3, P_{i,j}^3 \right) $, $ \left( A_{i,j}^4, P_{i,j}^4 \right) $. Calculate $ \delta_3 $. If $ \delta_3 < h $, we add the point $ (\bar{x}, \bar{y}) $ and remove the points corresponding to $ \left( A_{i,j}^2, P_{i,j}^2 \right) $ and $ \left( A_{i,j}^3, P_{i,j}^3 \right) $. The procedure will continue by considering the four new points $ (\bar{x}, \bar{y}) $, $ \left( A_{i,j}^4, P_{i,j}^4 \right) $, $ \left( A_{i,j}^5, P_{i,j}^5 \right) $, $ \left( A_{i,j}^6, P_{i,j}^6 \right) $ and proceeding in the exact same way. On the other hand, if $ \delta_3 \ge h $, then we do not remove any points and the procedure will continue by considering the four new points $ \left( A_{i,j}^2, P_{i,j}^2 \right) $, $ \left( A_{i,j}^3, P_{i,j}^3 \right) $, $ \left( A_{i,j}^4, P_{i,j}^4 \right) $, $ \left( A_{i,j}^5, P_{i,j}^5 \right) $. The procedure is repeated until all the singular points of the node has been taken into account.
+
+\begin{rem}[Convergence]
+	We know that Jiang and Dai (2005) \cite{Jiang2004} proved the convergence of the exact binomial algorithm for European/American path-dependent options to the Black-Scholes prices, with rate of convergence of $ O( \Delta T ) $. The possibility of obtaining estimates of the exact binomial price with an error control allows us to prove easily the convergence of our method to the continuous value. By choosing $ h $ to depend on $ n $ so that $ n h(n) \to 0 $, we have that the corresponding sequences of upper and lower estimates converge to the continuous price value. Moreover, the choice $ h(n) = O(\frac{1}{n^2}) $ guarantees that the order of convergence is $ O( \Delta T ) $.
+\end{rem}
+
+\begin{rem}[Computational complexity -- theoretical considerations]
+	The key issue in assessing the theoretical complexity of the algorithm lies in the upper and lower bound computation. Since the number of singular points eliminated depends on various factors, and we do not control the number of singular points directly, it is difficult to theoretically calculate the order of complexity of the algorithm. The dependence of number of singular points and their nature (closeness, convexity) on the initial data might be a fruitful area of research, and this in turn might give us clues as to how the problem of finding complexity theoretically might be tackled. Nevertheless, the numerical results indicate that the method is quite competitive in practice.
+\end{rem}
+
+
+
+\clearpage
+\section{The program}
+\label{sec:asian-program}
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+	\DontPrintSemicolon
+	
+	\KwIn{\\
+		\qquad \emph{Contract details}  \\
+		\qquad \quad time to maturity: $ T $, strike price: $ K $ \\
+		\qquad \quad type: arithmetic/geometric, call/put, European/American, fixed/floating  \\
+		
+		\qquad \emph{Details of the underlying asset}  \\
+		\qquad \quad initial price: $ s_0 $, volatility: $ \sigma $, continuous dividend rate: $ q $  \\
+		
+		\qquad \emph{Market parameters} -- spot interest rate: $ r $ \\
+		
+		\qquad \emph{Computational parameters} -- time steps: $ n $, error bound: $ h $ \\
+	}
+	
+	\KwOut{The price of the option at the initial time}
+	
+	\Begin{
+		Set $ \Delta T, u, p $ from the formulae in Section \ref{sec:asian-binom}. \;
+		
+		Compute the singular points at maturity using Equation \ref{eq:asian-price-maturity-kin} and \ref{eq:asian-price-maturity-knotin}. \;
+		
+		\For{$ i \in \{ N-1, \dots, 0 \} $}{
+			Evaluate $ P_{i,0}^1 $ and $ P_{i,i}^1 $ by Equation \ref{eq:asian-terminal-nodes} with the early exercise.
+			
+			\ForAll{$ N_{i,j}, \  j \in \{ 1, \dots, i-1 \} $}{
+				Using Equation \ref{eq:asian-proj-up}, $\forall A_{i+1,j}^l, \forall l \in \{ 1, \dots, L_{i+1,j} \} $, compute $ B^l $. \;
+				
+				$ \forall B^l \in \left[  A_{i,j}^{\min}, A_{i,j}^{\max}  \right] $, compute $ v_{i,j}^c ( B^l ) $ by Equations \ref{eq:asian-up-lint} and \ref{eq:asian-up-pr}. \;
+				
+				Using Equation \ref{eq:asian-proj-dn}, $\forall A_{i+1,j+1}^l, \forall l \in \{ 1, \dots, L_{i+1,j+1} \} $, compute $ C^l $. \;
+				
+				$ \forall C^l \in \left[  A_{i,j}^{\min}, A_{i,j}^{\max}  \right] $, compute $ v_{i,j}^c ( C^l ) $ by Equations \ref{eq:asian-dn-lint} and \ref{eq:asian-dn-pr}. \;
+				
+				Sort the averages $ \{ B^l \}_l \cup \{ C^l \}_l \in \left[  A_{i,j}^{\min}, A_{i,j}^{\max}  \right] $ to obtain the set of $ L_{i,j} $ singular points. \;
+				
+				Compute the American price according to Section \ref{sec:fixed-strike-am} and obtain a new set of singular points with a new cardinality denoted, for simplicity, by $ L_{i,j} $ again. \;
+				
+				\Switch(Approximation){upper or lower}{
+					\Case{upper bound} {Follow Section \ref{subsec:asian-ub} \;}
+					\Case{lower bound} {Follow Section \ref{subsec:asian-lb} \;}
+				}
+			}
+		}
+		\KwRet{$ P_{0,0}^1 $    \tcp*{the upper or lower estimate of the exact binomial price with error smaller that $ nh $.} }
+	}
+	
+	\caption{Pricing cliquet options using the singular points method}
+\end{algorithm}
+
+
+\clearpage
+\subsection{Implementation}
+The algorithm was implemented in Python 3.5.0 (2015-09-13).
+
+\inputminted[tabsize=2]{python}{../code/asian.py}
+\label{lst:asian}
+
+
+\clearpage
+\section{Extensibility}
+\label{sec:asian-extensions}
+
+Let us recapitulate the conditions required for the singular points method to work in the case of Asian options with arithmetic mean.
+\begin{itemize}
+	\item The ability to calculate the upper and lower bounds of the mean for all nodes of the tree.
+	\item The recombinant nature of the tree for the underlying. Note that the tree for the option prices are \emph{not} recombinant.
+	\item Convexity and piecewise-linearity of the price function on the mean of the underlying.
+	\item Constant volatility
+\end{itemize}
+
+Keeping these in mind, let us look at the possibility of extending the singular points method to the following cases:
+\begin{enumerate}
+	\item Asian options with geometric mean and fixed volatility.
+	\item Asian options with arithmetic mean and local volatility.
+\end{enumerate}
+
+
+
+\paragraph{Geometric mean and fixed volatility}
+In the case of geometric options, we have a closed form formula under the Black-Scholes market model. Let us try to extend the singular points method to this case.
+
+Firstly, we show that the result about the maximum and minimum paths still hold in the geometric case.
+
+\begin{dfn}[Geometric mean]
+	The geometric mean of the risky asset's prices $ (S_i)_{i \in [n]} $ is given by:
+	\begin{equation}
+		\label{eq:gm}
+		G_{n} = \left( \prod_{i=0}^n S_i \right) ^{\frac{1}{n+1}}
+	\end{equation}
+\end{dfn}
+
+
+\begin{lmm}
+	At each node $N(i,j)$, the following hold:
+	\begin{enumerate}
+	\item The maximum average possible $ G_{i,j}^{\max} $ is attained by the path corresponding to the path with $j$ up movements followed by $(i-j)$ down movements.
+	\item The minimum average possible $ G_{i,j}^{\min} $ is attained by the path corresponding to the path corresponding to the path with $(i-j)$ down movements followed by $j$ up movements.
+	\end{enumerate}
+\end{lmm}
+
+\begin{proof}
+	The proof is the same as Corollary \ref{crr:asian-up-dn-path}, with $A$ replaced by $G$ and relevant modifications.
+\end{proof}
+
+
+One of the central ideas behind the singular points method is that the price of the option is a convex, piecewise-linear function of the average $A$. But in the geometric case, this no longer holds true. For example, take a node $N_{i,j}$ with $ i = n-1 $. The price function given by $ v_{i,j}(G) $, with $ G \in [G^{min},G^{max}] $, can be calculated by the discounted expectation value.
+\begin{align}
+	v_{i,j}(G) &= \frac{1}{R} \left[ p v_{i+1,j+1}(G_u) + (1-p) v_{i+1,j}(G_d) \right] \\
+	G_u &= \left( G^{i+1} S_0 u^{-i+2j+1} \right)^{\frac{1}{i+2}} \propto G^{\frac{i+1}{i+2}} \\
+	G_d &= \left( G^{i+1} S_0 u^{-i+2j-1} \right)^{\frac{1}{i+2}} \propto G^{\frac{i+1}{i+2}}
+\end{align}
+Clearly, the final function $ v_{i,j} $ is not linear in $G$. Rather it is piecewise-concave. Thus we cannot use the singular points method in this case.
+
+
+\paragraph{Arithmetic mean with local volatility}
+In this case, the tree for the underlying is not recombinant, so we do not have more than one singular point in one (non-recombining) node. Essentially, we cannot use the singular points method for local volatility models.
+
+
+
+\section{Results and conclusion}
+\label{sec:asian-results}
+
+We assume that the initial value of the stock price is $ s_0 = 100 $, the maturity is $ T = 1 $, the force of interest rate is $ r = 0.1 $ and the continuous dividend yield is $ q = 0.03 $. We will consider two choices for volatility, $ \sigma = 0.2 $ and $ \sigma = 0.4 $, and two choices for the strike, $ K = 90 $ and $ K = 110 $. The time steps ($ n $) taken into consideration are 10, 25, 50, 100, 200 and 400.
+
+
+All simulations were run on a computer with the following specifications.
+\begin{table}[h]
+	\centering
+	\caption{Computer specifications}
+	\label{tab:specs}
+	%	\rowcolors{1}{Burlywood1}{}
+	\begin{tabular}{ll}
+		\toprule
+		Item  &  Details  \\
+		\midrule
+		Processor  &  Intel\textregistered  Celeron\textregistered  N2840  @ 2.16GHz (2 CPUs)  \\
+		Architecture  &  64-bit  \\
+		Memory  &  4 GB  \\
+		Operating system  &  Arch Linux  \\
+		Python  &  v3.5.0 (2015-09-13)  \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+
+Table \ref{tab:asian-results} highlights the prices obtained using the binomial method ($ n = 10 $ and $ n = 25 $), and the singular points method for the aforementioned time steps.
+\begin{table}[h]
+	\centering
+	\caption{Results for Asian options}
+	\label{tab:asian-results}
+	%	\rowcolors{1}{Burlywood1}{}
+	\begin{tabular}{crcccc}
+		\toprule
+		&         &  \multicolumn{2}{c}{$ K = 90 $}  &  \multicolumn{2}{c}{$ K = 110 $}  \\
+		       \cmidrule(lr){3-4}\cmidrule(lr){5-6}
+		&  $ n $  &  $ \sigma = 0.2 $  &  $ \sigma = 0.4 $  &  $ \sigma = 0.2 $  &  $ \sigma = 0.4 $  \\
+		\midrule
+		\multirow{2}{2em}{Bin}
+		&   10  &  14.5912  &  17.8033  &  2.5100  &  6.6523  \\
+		&   25  &  15.1535  &  18.6786  &  2.6270  &  7.3451  \\
+		\midrule
+		\multirow{6}{2em}{SP}
+		&   10  &  14.5925  &  17.8068  &  2.5090  &  6.6511  \\
+		&   25  &  15.1535  &  18.6785  &  2.6270  &  7.3449  \\
+		&   50  &  15.3524  &  19.0420  &  2.6673  &  7.4563  \\
+		&  100  &  15.4732  &  19.2696  &  2.6886  &  7.5174  \\
+		&  200  &  15.5453  &  19.4065  &  2.6996  &  7.5502  \\
+		&  400  &  15.5861  &  19.4845  &  2.7053  &  7.5674  \\
+		\midrule
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+
+By comparing our results with the exact binomial value obtained for $ n = 10 $, we can confirm that the method gives correct results. In fact, from Table \ref{tab:asian-results} and also \cite[Tables 1 -- 2 and 4 -- 7]{Gaudenzi2010}, we observe that the prices are monotonically increasing with respect to the number of time steps, and seem to gradually converge towards a limiting value.
+
+
+\paragraph{Concluding remarks}
+Thus, we have seen that the singular points method fails to be generalised, its shortcomings being the inability to deal with Asian options with geometric mean and to deal with local volatility cases. Nevertheless, it is quite efficient in its domain. It is comparatively fast, having experimental order of complexity $ O(n^3) $. It also allows specification of \emph{a priori} error bounds, both upper and lower. Numerical results reported by \cite{Gaudenzi2010} shows that the method outperforms alternative algorithms, and may be viewed as an improvement on previous tree methods.
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
